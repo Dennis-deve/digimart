@@ -1,0 +1,3 @@
+type Hit={count:number;resetAt:number};const globalState=globalThis as unknown as {digimartRateLimit?:Map<string,Hit>};const hits=globalState.digimartRateLimit??new Map<string,Hit>();globalState.digimartRateLimit=hits;
+export function clientIp(request:Request){return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()??'unknown';}
+export function limited(key:string,max:number,windowMs:number){const now=Date.now();const existing=hits.get(key);if(!existing||existing.resetAt<=now){hits.set(key,{count:1,resetAt:now+windowMs});return {allowed:true,retryAfter:0};}existing.count+=1;return {allowed:existing.count<=max,retryAfter:Math.ceil((existing.resetAt-now)/1000)};}

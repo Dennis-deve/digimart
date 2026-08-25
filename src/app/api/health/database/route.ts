@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {prisma} from '@/lib/db';
+export async function GET(){try{const [users,products,orders]=await Promise.all([prisma.user.count(),prisma.product.count(),prisma.order.count()]);return NextResponse.json({status:'success',data:{database:'connected',users,products,orders}})}catch{return NextResponse.json({status:'error',message:'Database connection failed.'},{status:503})}}

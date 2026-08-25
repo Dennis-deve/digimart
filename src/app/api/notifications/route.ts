@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {requireRole} from '@/lib/guards';import {prisma} from '@/lib/db';
+export async function GET(request:Request){const guard=await requireRole(request,['CUSTOMER','RESELLER','SELLER','RIDER','SUPPORT','ADMIN']);if(guard.response)return guard.response;const notifications=await prisma.notification.findMany({where:{userId:guard.session!.id},orderBy:{createdAt:'desc'},take:50});return NextResponse.json({status:'success',data:notifications})}

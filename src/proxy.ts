@@ -1,0 +1,7 @@
+import {NextResponse, type NextRequest} from 'next/server';
+import {jwtVerify} from 'jose';
+const protectedPrefixes=['/account','/orders','/wallet','/notifications','/reseller','/seller','/rider','/admin'];
+const roles:Record<string,string[]>={ '/admin':['ADMIN'], '/seller':['SELLER','ADMIN'], '/reseller':['RESELLER','ADMIN'], '/rider':['RIDER','ADMIN'] };
+const key=()=>new TextEncoder().encode(process.env.JWT_SECRET??'development-only-change-before-production');
+export async function proxy(request:NextRequest){const path=request.nextUrl.pathname;const protectedPath=protectedPrefixes.some(prefix=>path===prefix||path.startsWith(`${prefix}/`));if(!protectedPath)return NextResponse.next();const token=request.cookies.get('digimart_session')?.value;if(!token){const url=new URL('/sign-in',request.url);url.searchParams.set('next',path);return NextResponse.redirect(url)}try{const {payload}=await jwtVerify(token,key());const required=Object.entries(roles).find(([prefix])=>path===prefix||path.startsWith(`${prefix}/`))?.[1];if(required&&!required.includes(String(payload.role))){const url=new URL('/account',request.url);url.searchParams.set('error','permission');return NextResponse.redirect(url)}return NextResponse.next()}catch{const url=new URL('/sign-in',request.url);url.searchParams.set('next',path);return NextResponse.redirect(url)}}
+export const config={matcher:['/account/:path*','/orders/:path*','/wallet/:path*','/notifications/:path*','/reseller/:path*','/seller/:path*','/rider/:path*','/admin/:path*']};

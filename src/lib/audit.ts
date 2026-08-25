@@ -1,0 +1,2 @@
+import {prisma} from '@/lib/db';
+export async function audit(input:{actorId?:string;action:string;entityType:string;entityId?:string;metadata?:unknown}){try{await prisma.auditLog.create({data:{id:crypto.randomUUID(),actorId:input.actorId,action:input.action,entityType:input.entityType,entityId:input.entityId,metadata:input.metadata as never}})}catch{/* Audit failures must not break customer transaction flow. */}}

@@ -1,0 +1,2 @@
+import type { MetadataRoute } from 'next';
+export default function manifest(): MetadataRoute.Manifest {return {name:'DigiMart — One Marketplace. Every Need.',short_name:'DigiMart',description:'Buy, sell, resell and manage every need in one Ghanaian marketplace.',start_url:'/',display:'standalone',background_color:'#f6f8fc',theme_color:'#071c42',lang:'en-GH',categories:['shopping','finance','business'],icons:[{src:'/icon.svg',sizes:'any',type:'image/svg+xml',purpose:'any'}]};}

@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {prisma} from '@/lib/db';
+export async function GET(){const products=await prisma.product.findMany({where:{inStock:true,isExcluded:false},orderBy:{createdAt:'desc'}});return NextResponse.json({status:'success',data:products.map(p=>({id:p.id,name:p.name,network:p.network,category:p.category,basePrice:Number(p.basePrice),variablePrice:p.variablePrice,minAmount:p.minAmount?Number(p.minAmount):null,maxAmount:p.maxAmount?Number(p.maxAmount):null,images:p.images,description:p.description,inStock:p.inStock,provider:p.source}))});}

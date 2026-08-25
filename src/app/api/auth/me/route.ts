@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {readSession} from '@/lib/session';
+export async function GET(request:Request){const token=request.headers.get('cookie')?.match(/digimart_session=([^;]+)/)?.[1];if(!token)return NextResponse.json({status:'error',message:'Not authenticated.'},{status:401});const session=await readSession(decodeURIComponent(token));if(!session)return NextResponse.json({status:'error',message:'Session is invalid or expired.'},{status:401});return NextResponse.json({status:'success',data:session});}

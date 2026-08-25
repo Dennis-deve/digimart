@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Announcement {
+  id        Int      @id @default(1)
+  message   String?
+  isActive  Boolean  @default(false)
+  updatedAt DateTime
+}
+
+model Order {
+  id                String      @id
+  customerId        String?
+  customerPhone     String
+  resellerId        String?
+  total             Decimal     @db.Decimal(10, 2)
+  paymentRef        String?
+  status            OrderStatus @default(PENDING)
+  createdAt         DateTime    @default(now())
+  couponCode        String?
+  discount          Decimal     @default(0) @db.Decimal(10, 2)
+  deliveryZoneId    String?
+  deliveryMethod    String?
+  deliveryFee       Decimal     @default(0) @db.Decimal(10, 2)
+  deliveryAddressId String?
+  User              User?       @relation(fields: [customerId], references: [id])
+  Reseller          Reseller?   @relation(fields: [resellerId], references: [id])
+  OrderItem         OrderItem[]
+}
+
+model OrderItem {
+  id          String                @id
+  orderId     String
+  productId   String
+  source      ProductSource
+  qty         Int                   @default(1)
+  unitPrice   Decimal               @db.Decimal(10, 2)
+  basePrice   Decimal               @db.Decimal(10, 2)
+  fulfillment ItemFulfillmentStatus @default(PENDING)
+  externalRef String?
+  metadata    Json?
+  Order       Order                 @relation(fields: [orderId], references: [id])
+  Product     Product               @relation(fields: [productId], references: [id])
+}
+
+model Payout {
+  id          String       @id
+  resellerId  String
+  amount      Decimal      @db.Decimal(10, 2)
+  status      PayoutStatus @default(PENDING)
+  momoRef     String?
+  requestedAt DateTime     @default(now())
+  paidAt      DateTime?
+  Reseller    Reseller     @relation(fields: [resellerId], references: [id])
+}
+
+model PlatformSettings {
+  id                      Int     @id @default(1)
+  platformMomoNumber      String
+  defaultCommissionPct    Decimal @default(20) @db.Decimal(5, 2)
+  resellerRegistrationFee Decimal @default(50) @db.Decimal(10, 2)
+  supportPhone            String?
+  whatsappNumber          String?
+  whatsappGroupLink       String?
+}
+
+model Product {
+  id                    String                  @id
+  source                ProductSource
+  sourceProductId       String?
+  name                  String
+  description           String?
+  links                 Json?
+  network               String?
+  category              String
+  basePrice             Decimal                 @db.Decimal(10, 2)
+  images                String[]                @default([])
+  inStock               Boolean                 @default(true)
+  isExcluded            Boolean                 @default(false)
+  variablePrice         Boolean                 @default(false)
+  minAmount             Decimal?                @db.Decimal(10, 2)
+  maxAmount             Decimal?                @db.Decimal(10, 2)
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime
+  OrderItem             OrderItem[]
+  ResellerProductMarkup ResellerProductMarkup[]
+
+  @@unique([source, sourceProductId])
+  @@index([network])
+  @@index([source])
+}
+
+model Reseller {
+  id                    String                  @id
+  userId                String                  @unique
+  storeName             String
+  storeSlug             String                  @unique
+  status                ResellerStatus          @default(PENDING)
+  registrationFee       Decimal                 @db.Decimal(10, 2)
+  feePaid               Boolean                 @default(false)
+  feePaymentRef         String?
+  defaultMarkupPct      Decimal                 @default(0) @db.Decimal(5, 2)
+  commissionPctOverride Decimal?                @db.Decimal(5, 2)
+  earningsBalance       Decimal                 @default(0) @db.Decimal(10, 2)
+  createdAt             DateTime                @default(now())
+  approvedAt            DateTime?
+  Order                 Order[]
+  Payout                Payout[]
+  User                  User                    @relation(fields: [userId], references: [id])
+  ResellerProductMarkup ResellerProductMarkup[]
+}
+
+model ResellerProductMarkup {
+  id         String   @id
+  resellerId String
+  productId  String
+  markupPct  Decimal  @db.Decimal(5, 2)
+  Product    Product  @relation(fields: [productId], references: [id])
+  Reseller   Reseller @relation(fields: [resellerId], references: [id])
+
+  @@unique([resellerId, productId])
+}
+
+model User {
+  id           String    @id
+  phone        String    @unique
+  email        String?   @unique
+  passwordHash String
+  role         Role      @default(CUSTOMER)
+  momoNumber   String?
+  createdAt    DateTime  @default(now())
+  Order        Order[]
+  Reseller     Reseller?
+}
+
+model SupportTicket {
+  id        String   @id
+  topic     String
+  orderNo   String?
+  message   String
+  status    String   @default("OPEN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@index([status])
+}
+
+model Wallet {
+  id        String   @id
+  userId    String   @unique
+  balance   Decimal  @default(0) @db.Decimal(10, 2)
+  updatedAt DateTime @default(now())
+}
+
+model WalletEntry {
+  id             String   @id
+  walletId       String
+  type           String
+  amount         Decimal  @db.Decimal(10, 2)
+  balanceAfter   Decimal  @db.Decimal(10, 2)
+  reference      String   @unique
+  relatedOrderId String?
+  createdAt      DateTime @default(now())
+
+  @@index([walletId, createdAt])
+}
+
+model CustomerAddress {
+  id            String   @id
+  userId        String
+  label         String
+  recipientName String
+  phone         String
+  address       String
+  city          String
+  region        String
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+}
+
+model Delivery {
+  id              String   @id
+  orderId         String   @unique
+  riderId         String?
+  status          String   @default("AVAILABLE")
+  pickupAddress   String?
+  deliveryAddress String?
+  deliveryFee     Decimal  @default(0) @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  @@index([status])
+}
+
+model Rider {
+  id        String   @id
+  userId    String   @unique
+  active    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Seller {
+  id        String   @id
+  userId    String   @unique
+  storeName String
+  storeSlug String   @unique
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Refund {
+  id              String   @id
+  orderId         String
+  userId          String?
+  amount          Decimal  @db.Decimal(10, 2)
+  reason          String
+  status          String   @default("PENDING_REVIEW")
+  resolutionNote  String?
+  refundReference String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model Notification {
+  id        String    @id
+  userId    String
+  title     String
+  message   String
+  type      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Coupon {
+  id            String    @id
+  code          String    @unique
+  discountType  String
+  discountValue Decimal   @db.Decimal(10, 2)
+  minimumOrder  Decimal?  @db.Decimal(10, 2)
+  usageLimit    Int?
+  usageCount    Int       @default(0)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+}
+
+model AuditLog {
+  id         String   @id
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model DeliveryZone {
+  id               String   @id
+  name             String   @unique
+  city             String   @default("Kumasi")
+  baseFee          Decimal  @db.Decimal(10, 2)
+  minimumOrder     Decimal? @db.Decimal(10, 2)
+  estimatedMinutes Int      @default(60)
+  pickupAvailable  Boolean  @default(true)
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+}
+
+enum ItemFulfillmentStatus {
+  PENDING
+  FULFILLED
+  FAILED
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  REJECTED
+}
+
+enum ProductSource {
+  BUNDLESHOPGH
+  MUVIIN
+  ADMIN
+}
+
+enum ResellerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Role {
+  CUSTOMER
+  RESELLER
+  ADMIN
+  SELLER
+  RIDER
+  SUPPORT
+}

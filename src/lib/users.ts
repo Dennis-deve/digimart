@@ -1,0 +1,3 @@
+import {hash,compare} from 'bcryptjs';import {prisma} from '@/lib/db';
+export async function registerUser(input:{phone:string;email?:string;password:string}){const existing=await prisma.user.findFirst({where:{OR:[{phone:input.phone},...(input.email?[{email:input.email}]:[])]}});if(existing)throw new Error('An account already exists with this phone number or email.');return prisma.user.create({data:{id:crypto.randomUUID(),phone:input.phone,email:input.email,passwordHash:await hash(input.password,12),role:'CUSTOMER'}});}
+export async function authenticateUser(phone:string,password:string){const user=await prisma.user.findUnique({where:{phone}});if(!user||!(await compare(password,user.passwordHash)))return null;return user;}
