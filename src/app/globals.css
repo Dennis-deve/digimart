@@ -51,3 +51,97 @@ a.bell{display:grid;place-items:center;text-decoration:none;color:inherit}
 .afaForm{display:grid;gap:9px;margin-bottom:12px;border:1px dashed #d6deeb;border-radius:12px;padding:12px}
 .afaForm label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:800}
 .afaForm input{border:1px solid #e2e7ef;border-radius:10px;padding:10px;font:inherit;font-weight:400}
+
+/* ============================================================
+   ULTRAMODERN + MOBILE RESPONSIVE LAYER (v3) — overrides above
+   ============================================================ */
+:root{--radius:18px;--shadow-sm:0 2px 10px #10213f12;--shadow-md:0 10px 30px #10213f1a}
+html{-webkit-text-size-adjust:100%}
+body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,Inter,Arial,sans-serif}
+.deliver{display:none!important}
+
+/* --- Sticky glass topbar, search visible on every device --- */
+.topbar{position:sticky;top:0;z-index:20;max-width:1180px;margin:auto;padding:10px 20px;display:flex;align-items:center;gap:10px;background:#f6f8fcee;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid #e3e8f0}
+.logo{font-size:22px;padding:8px 11px;border-radius:12px;flex-shrink:0;transition:transform .15s ease;text-decoration:none}
+.logo:hover{transform:scale(1.04)}
+.search{flex:1;min-width:0;height:46px;border-radius:14px;background:#fff;box-shadow:var(--shadow-sm);border:1.5px solid #e3e8f0;transition:border-color .15s ease,box-shadow .15s ease}
+.search:focus-within{border-color:#1647a6;box-shadow:0 0 0 4px #1647a614}
+.bell,.cartButton,.signinButton{height:46px;min-width:46px;border-radius:14px;box-shadow:var(--shadow-sm);transition:transform .15s ease}
+.bell:hover,.cartButton:hover,.signinButton:hover{transform:translateY(-1px)}
+.signinButton{padding:0 16px}
+
+/* --- Hero v3 --- */
+.hero{border-radius:28px;background:radial-gradient(900px 380px at 85% -10%,#ffd52b26,transparent 60%),linear-gradient(120deg,#041228,#0b2657 55%,#123a8f)}
+.hero h1{letter-spacing:-2.5px}
+.heroActions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.heroActions button{margin:0;border-radius:14px;padding:14px 22px;transition:transform .15s ease,box-shadow .15s ease;box-shadow:var(--shadow-md)}
+.heroActions button:hover{transform:translateY(-2px)}
+.heroActions .ghost{background:#ffffff14;color:#fff;border:1px solid #ffffff33;backdrop-filter:blur(6px)}
+
+/* --- Category chips (functional filter) --- */
+.chipRow{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.chipRow::-webkit-scrollbar{display:none}
+.chipRow button{white-space:nowrap;border:1.5px solid #e3e8f0;background:#fff;border-radius:999px;padding:9px 16px;font-weight:750;font-size:13px;color:#3c4a63;cursor:pointer;transition:all .15s ease}
+.chipRow button.selected{background:var(--navy);color:#fff;border-color:var(--navy);box-shadow:var(--shadow-sm)}
+
+/* --- Product cards v3 --- */
+.productGrid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.product{border-radius:var(--radius);box-shadow:var(--shadow-sm);transition:transform .18s ease,box-shadow .18s ease;border:1px solid #e9edf5}
+.product:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.product:active{transform:scale(.98)}
+.productArt{position:relative}
+.catTag{position:absolute;top:10px;right:10px;font-style:normal;background:#071c42d9;color:#fff;font-size:9px;font-weight:800;letter-spacing:.4px;padding:4px 8px;border-radius:999px;backdrop-filter:blur(4px);max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.product button{border-radius:12px;padding:12px;transition:background .15s ease}
+.product button:hover{background:#1647a6}
+
+/* --- Verified reseller store cards --- */
+.storeGridV2{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.storeCardV2{--accent:#071c42;display:flex;flex-direction:column;gap:7px;background:#fff;border:1px solid #e9edf5;border-radius:var(--radius);padding:18px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow-sm);transition:transform .18s ease,box-shadow .18s ease;position:relative;overflow:hidden}
+.storeCardV2::before{content:'';position:absolute;inset:0 auto 0 0;width:5px;background:var(--accent)}
+.storeCardV2:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.scAvatar{width:46px;height:46px;border-radius:14px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:900;font-size:16px}
+.storeCardV2 b{font-size:15px}
+.storeCardV2 span{font-size:12.5px;color:#68758a;line-height:1.4}
+.storeCardV2 em{font-style:normal;font-size:11px;font-weight:800;color:#00836f;margin-top:2px}
+
+/* --- Touch-friendly controls everywhere --- */
+.button,.payment,.checkout button,.reviewForm button,.replyRow button{min-height:44px}
+.networkSelect button{min-height:44px}
+input,select,textarea{font-size:16px!important}/* stops iOS zoom-on-focus */
+
+/* --- Mobile refinements (Android + iOS) --- */
+@supports (padding:max(0px)){
+  .mobileNav{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+}
+@media(max-width:900px){.productGrid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
+@media(max-width:760px){
+  .topbar{padding:8px 14px;gap:8px;flex-wrap:nowrap}
+  .logo{font-size:19px;padding:7px 9px}
+  .search{order:5;flex-basis:100%;height:44px}/* search gets its own full-width row on phones */
+  .bell{display:none}
+  .signinButton{padding:0 12px;font-size:12px}
+  .cartButton{font-size:15px}
+  .hero{margin:10px 14px;padding:26px 20px;border-radius:22px;min-height:0}
+  .hero h1{font-size:34px;letter-spacing:-1.8px}
+  .hero h2{font-size:13.5px;max-width:300px}
+  .heroActions button{padding:12px 18px;font-size:13.5px}
+  .heroCard{display:none}
+  .content{margin:18px 14px 110px}
+  .chipRow{margin-bottom:4px}
+  .productGrid{grid-template-columns:repeat(2,1fr);gap:11px}
+  .productArt{height:104px;font-size:40px}
+  .product h3{font-size:13.5px}
+  .product strong{font-size:15.5px}
+  .product button{padding:11px;font-size:12.5px}
+  .storeGridV2{grid-template-columns:1fr 1fr;gap:10px}
+  .storeCardV2{padding:14px}
+  .tracking{padding:20px;border-radius:18px}
+  .mobileNav{height:64px;gap:2px}
+  .mobileNav a,.mobileNav button{min-width:56px;min-height:52px;font-size:20px}
+  .checkout{padding:16px 16px calc(16px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .addressForm{grid-template-columns:1fr}
+  .toast{bottom:86px;font-size:12.5px}
+}
+@media(max-width:380px){.hero h1{font-size:29px}.productGrid{gap:9px}.signinButton{padding:0 9px}}
+@media(hover:none){.product:hover,.storeCardV2:hover{transform:none}/* no sticky hover on touch */}

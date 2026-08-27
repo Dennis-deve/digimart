@@ -59,6 +59,7 @@ Muviin airtime has no webhook — poll its status API periodically:
 3. Commands (one cron per line, or two cron entries):
    `curl -X POST -H "Authorization: Bearer $JOBS_TOKEN" https://YOUR-DOMAIN/api/jobs/recheck-muviin`
    `curl -X POST -H "Authorization: Bearer $JOBS_TOKEN" https://YOUR-DOMAIN/api/jobs/recheck-refer2bundle`
+   `curl -X POST -H "Authorization: Bearer $JOBS_TOKEN" https://YOUR-DOMAIN/api/jobs/recheck-moolre` (payment status safety net)
 
 Moolre payouts (transfers) need `MOOLRE_API_PRIVKEY` (private key) plus transfer channel codes
 (MTN=1 built-in; set `MOOLRE_TRF_TELECEL` / `MOOLRE_TRF_AT` when Moolre confirms them).

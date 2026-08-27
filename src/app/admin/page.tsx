@@ -19,6 +19,7 @@ const NAV = [
   { label: 'Coupons', href: '/admin/coupons' },
   { label: 'Payouts', href: '/admin/payouts' },
   { label: 'Refunds', href: '/admin/refunds' },
+  { label: 'Partners', href: '/admin/partners' },
 ];
 const SOON = ['Providers', 'Resellers', 'Sellers', 'Delivery', 'Payments', 'Wallets', 'Promotions', 'Settings'];
 

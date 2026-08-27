@@ -39,6 +39,7 @@ export default function AdminOrders() {
       <Link href="/admin/coupons">Coupons</Link>
       <Link href="/admin/payouts">Payouts</Link>
       <Link href="/admin/refunds">Refunds</Link>
+      <Link href="/admin/partners">Partners</Link>
       <Link href="/">← Back to store</Link>
     </aside>
     <section>
