@@ -1,3 +1,4 @@
+import { siteUrl } from '@/lib/site-url';
 import {NextResponse} from 'next/server';
 import bcrypt from 'bcryptjs';
 import {prisma} from '@/lib/db';
@@ -5,7 +6,7 @@ import {createSession} from '@/lib/session';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const origin = process.env.APP_URL ?? url.origin;
+  const origin = (process.env.APP_URL ? siteUrl() : url.origin);
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const cookieState = request.headers.get('cookie')?.match(/digimart_oauth_state=([^;]+)/)?.[1];

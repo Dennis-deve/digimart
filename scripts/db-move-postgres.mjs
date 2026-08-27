@@ -32,11 +32,21 @@ if (!SOURCE_URL) { console.error('Set DB_MOVE_FROM (or DATABASE_URL) to the sour
 if (SOURCE_URL === TARGET_URL) { console.error('Source and target are the same URL — nothing to do.'); process.exit(1); }
 
 async function connect(url, label) {
-  const options = [{ ssl: false }, { ssl: { rejectUnauthorized: false } }];
+  // Newer pg drivers treat sslmode=require as verify-full, which fails on Railway's
+  // self-signed proxy chain. Try several safe combinations until one connects.
+  const variants = [
+    { url, ssl: undefined },
+    { url: url.replace('sslmode=require', 'sslmode=no-verify'), ssl: { rejectUnauthorized: false } },
+    { url: url.replace(/[?&]sslmode=[^&]*/g, ''), ssl: false },
+    { url: url.replace(/[?&]sslmode=[^&]*/g, ''), ssl: { rejectUnauthorized: false } },
+  ];
   let lastError;
-  for (const ssl of options) {
-    try { const c = new Client({ connectionString: url, ssl: ssl.ssl, connectionTimeoutMillis: 15000 }); await c.connect(); return c; }
-    catch (e) { lastError = e; }
+  for (const v of variants) {
+    try {
+      const cfg = { connectionString: v.url, connectionTimeoutMillis: 15000 };
+      if (v.ssl !== undefined) cfg.ssl = v.ssl;
+      const c = new Client(cfg); await c.connect(); return c;
+    } catch (e) { lastError = e; }
   }
   console.error(`Could not connect to ${label}: ${lastError.message}`); process.exit(1);
 }
@@ -63,7 +73,8 @@ if (existing.rowCount > 0) {
 
 // 2) Create schema on the target from the live Prisma schema (source stays untouched)
 console.log('Creating schema on target via `prisma db push` (fresh/empty target only)...');
-execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit', env: { ...process.env, DATABASE_URL: TARGET_URL } });
+const targetForPrisma = TARGET_URL.replace('sslmode=require', 'sslmode=no-verify');
+execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit', env: { ...process.env, DATABASE_URL: targetForPrisma } });
 
 // 3) Copy all rows, source -> target
 await target.query('SET session_replication_role = replica');

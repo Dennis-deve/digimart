@@ -1,9 +1,10 @@
+import { siteUrl } from '@/lib/site-url';
 import {NextResponse} from 'next/server';
 
 // Starts the Google OAuth flow. Requires GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (Google Cloud Console).
 export async function GET(request: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const origin = process.env.APP_URL ?? new URL(request.url).origin;
+  const origin = (process.env.APP_URL ? siteUrl() : new URL(request.url).origin);
   if (!clientId || !process.env.GOOGLE_CLIENT_SECRET) {
     return NextResponse.redirect(`${origin}/sign-in#google-not-configured`);
   }

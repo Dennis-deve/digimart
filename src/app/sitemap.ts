@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next';
 import { prisma } from '@/lib/db';
+import { siteUrl } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.APP_URL ?? 'https://digimart-production-b330.up.railway.app';
+  const base = siteUrl();
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: base, changeFrequency: 'daily', priority: 1 },
     { url: `${base}/sign-in`, changeFrequency: 'monthly', priority: 0.3 },

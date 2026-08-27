@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { siteUrl } from "@/lib/site-url";
 import "./globals.css";
 import "./portals.css";
 import "./dashboards.css";
@@ -14,7 +15,7 @@ import "./auth.css";
 import "./notifications.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.APP_URL ?? "https://digimart-production-b330.up.railway.app"),
+  metadataBase: new URL(siteUrl()),
   title: { default: "DigiMart | One Marketplace. Every Need.", template: "%s | DigiMart Ghana" },
   description: "DigiMart Ghana — buy MTN, Telecel and AirtelTigo data bundles, airtime, streaming subscriptions, result checkers, electronics, groceries and services. Pay with Mobile Money. One Marketplace. Every Need.",
   keywords: ["data bundles Ghana", "buy MTN data", "Telecel data", "AirtelTigo data", "airtime Ghana", "Netflix Ghana", "result checker", "online shopping Ghana", "Mobile Money shopping", "DigiMart"],
