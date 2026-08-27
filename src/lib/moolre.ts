@@ -1,6 +1,10 @@
 export type MoolreChannel = 'MTN' | 'Telecel' | 'AirtelTigo';
 const channels: Record<MoolreChannel,string> = { MTN:'13', Telecel:'6', AirtelTigo:'7' };
 const baseUrl = () => process.env.MOOLRE_BASE_URL ?? 'https://api.moolre.com';
+// Moolre key rules (from the official Moolre Postman collection):
+//   X-API-PUBKEY = your PUBLIC API key  -> collections, payment links, payment status
+//   X-API-KEY    = your PRIVATE API key -> transfers/payouts, account management
+// Putting the PRIVATE key in MOOLRE_API_PUBKEY causes AIN01 Authentication Error.
 const paymentHeaders = () => ({'Content-Type':'application/json','X-API-USER':process.env.MOOLRE_API_USER ?? '','X-API-PUBKEY':process.env.MOOLRE_API_PUBKEY ?? ''});
 const configured = () => Boolean(process.env.MOOLRE_API_USER && process.env.MOOLRE_API_PUBKEY && process.env.MOOLRE_ACCOUNT_NUMBER);
 
@@ -8,7 +12,7 @@ export async function collectMobileMoney(input:{payer:string;amount:number;chann
  if(!configured()) return {mode:'sandbox-not-configured' as const, status:1, code:'LOCAL_PENDING', message:'Moolre credentials have not been configured.', data:null};
  const response=await fetch(`${baseUrl()}/open/transact/payment`,{method:'POST',headers:paymentHeaders(),body:JSON.stringify({type:1,channel:channels[input.channel],currency:'GHS',payer:input.payer,amount:input.amount.toFixed(2),externalref:input.externalref,accountnumber:process.env.MOOLRE_ACCOUNT_NUMBER})});
  const result=await response.json() as {status:number|string;code:string;message:string|null;data:unknown};
- if(!response.ok || String(result.status)!=='1') throw new Error(result.message || 'Moolre could not initiate the payment request.');
+ if(!response.ok || String(result.status)!=='1' || result.code==='TP14') throw new Error(result.message || 'Moolre could not initiate the payment request.');
  return {mode:'live' as const,...result};
 }
 

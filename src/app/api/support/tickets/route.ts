@@ -1,4 +1,9 @@
-import {clientIp,limited} from '@/lib/rate-limit';import {NextResponse} from 'next/server';import {z} from 'zod';import {createTicket,listTickets} from '@/lib/tickets';import {requireRole} from '@/lib/guards';
+import {clientIp,limited} from '@/lib/rate-limit';
+import {NextResponse} from 'next/server';
+import {z} from 'zod';
+import {createTicket,listTickets} from '@/lib/tickets';
+import {requireRole} from '@/lib/guards';
+import {readSession} from '@/lib/session';
 const schema=z.object({topic:z.enum(['ORDER_TRACKING','PAYMENT','REFUND','DELIVERY','ACCOUNT']),orderNo:z.string().max(80).optional(),message:z.string().min(10).max(2000)});
-export async function POST(request:Request){const gate=limited(`support:${clientIp(request)}`,5,60_000);if(!gate.allowed)return NextResponse.json({status:'error',message:'Too many support requests. Please wait before trying again.'},{status:429,headers:{'Retry-After':String(gate.retryAfter)}});const parsed=schema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({status:'error',message:parsed.error.issues[0]?.message??'Invalid support request.'},{status:400});const ticket=await createTicket(parsed.data);return NextResponse.json({status:'success',data:ticket},{status:201});}
-export async function GET(request:Request){const guard=await requireRole(request,['SUPPORT','ADMIN']);if(guard.response)return guard.response;return NextResponse.json({status:'success',data:await listTickets()});}
+export async function POST(request:Request){const gate=limited(`support:${clientIp(request)}`,5,60_000);if(!gate.allowed)return NextResponse.json({status:'error',message:'Too many support requests. Please wait before trying again.'},{status:429,headers:{'Retry-After':String(gate.retryAfter)}});const parsed=schema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({status:'error',message:parsed.error.issues[0]?.message??'Invalid support request.'},{status:400});const token=request.headers.get('cookie')?.match(/digimart_session=([^;]+)/)?.[1];const session=token?await readSession(decodeURIComponent(token)):null;const ticket=await createTicket(parsed.data,{userId:session?.id,phone:session?.phone});return NextResponse.json({status:'success',data:{id:ticket.id,topic:ticket.topic}},{status:201});}
+export async function GET(request:Request){const guard=await requireRole(request,['SUPPORT','ADMIN']);if(guard.response)return guard.response;return NextResponse.json({status:'success',data:await listTickets()})}

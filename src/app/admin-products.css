@@ -1,2 +1,23 @@
 .productAdmin{min-height:100vh;background:#f6f8fc;color:#10213f;padding:35px max(18px,calc((100vw - 1100px)/2))}.productAdmin header{display:flex;justify-content:space-between;align-items:end}.productAdmin header p{font-size:11px;font-weight:800;letter-spacing:1px;color:#1647a6;margin:0}.productAdmin h1{margin:5px 0;font-size:30px;letter-spacing:-1px}.productAdmin header>button{border:0;background:#071c42;color:white;border-radius:11px;padding:12px 14px;font-weight:800}.catalogStats{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin:24px 0 15px}.catalogStats article,.catalogTable{background:white;border:1px solid #e2e7ef;border-radius:15px;padding:16px}.catalogStats b{font-size:24px;display:block}.catalogStats span{font-size:12px;color:#68758a}.catalogTools{display:flex;gap:9px;margin-bottom:15px}.catalogTools input{flex:1;padding:11px;border:1px solid #dfe5ef;border-radius:9px}.catalogTools button{border:1px solid #dfe5ef;background:#fff;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:800}.tableHead,.catalogTable article{display:grid;grid-template-columns:2.1fr 1fr .8fr .8fr .8fr 30px;gap:10px;align-items:center}.tableHead{background:#f6f8fc;padding:9px;font-size:10px;font-weight:800;color:#68758a;text-transform:uppercase}.catalogTable article{padding:13px 9px;border-bottom:1px solid #edf0f5;font-size:12px}.catalogTable article>div{display:flex;align-items:center;gap:9px}.catalogTable i{width:29px;height:29px;display:grid;place-items:center;background:#eff4ff;border-radius:8px;font-style:normal}.catalogTable em{font-style:normal;background:#e7f8f1;color:#00836f;border-radius:7px;padding:5px;text-align:center;font-size:10px;font-weight:800}.catalogTable em.outofstock{background:#fff2c8;color:#795a00}.catalogTable article>button{border:0;background:transparent;font-weight:900}@media(max-width:760px){.productAdmin{padding:22px 14px}.productAdmin h1{font-size:25px}.catalogStats{gap:8px}.catalogStats article{padding:13px}.catalogTools{flex-wrap:wrap}.catalogTools input{flex-basis:100%}.tableHead{display:none}.catalogTable article{grid-template-columns:1fr auto}.catalogTable article>span,.catalogTable article>strong{display:none}.catalogTable em{grid-column:1}.catalogTable article>button{grid-column:2;grid-row:1}}
 .productForm{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.productForm label{font-size:12px;font-weight:800}.productForm input{display:block;width:100%;margin-top:6px;padding:12px;border:1px solid #dfe5ef;border-radius:9px}.productForm button{grid-column:1/-1;border:0;background:#071c42;color:#fff;border-radius:10px;padding:13px;font-weight:800}@media(max-width:760px){.productForm{grid-template-columns:1fr}}
+/* Real admin product tools */
+.productForm{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:6px}
+.productForm label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#10213f}
+.productForm .fieldFull{grid-column:1/-1}
+.productForm input,.productForm select,.productForm textarea{border:1px solid #e2e7ef;border-radius:10px;padding:11px 12px;font:inherit;font-weight:400}
+.productForm .sourcePicker{display:flex;gap:8px;flex-wrap:wrap}
+.productForm .sourcePicker button{border:1px solid #e2e7ef;background:#fff;border-radius:11px;padding:11px 13px;font-weight:800;font-size:13px;cursor:pointer}
+.productForm .sourcePicker button.selected{background:#071c42;color:#fff;border-color:#071c42}
+.productForm .hint{font-weight:400;color:#68758a}
+.productForm .checkboxRow{flex-direction:row;align-items:center;gap:9px}
+.productForm>button{border:0;background:#071c42;color:#fff;border-radius:11px;padding:13px;font-weight:800;cursor:pointer}
+.formError,.adminNotice{border-radius:10px;padding:11px 13px;font-size:13px;font-weight:700;margin:0 0 14px}
+.formError{background:#fde8e8;color:#a11c1c}
+.adminNotice.ok{background:#e5f8f2;color:#00836f}
+.adminNotice.err{background:#fde8e8;color:#a11c1c}
+.rowActions{display:flex;gap:6px;justify-content:flex-end}
+.rowActions button{border:1px solid #e2e7ef;background:#fff;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:800;cursor:pointer}
+.rowActions button.danger{color:#a11c1c;border-color:#f3c9c9}
+.netTag{background:#eef3ff;color:#1647a6;border-radius:7px;padding:3px 7px;font-size:10px;font-weight:800;margin-left:7px}
+.adminEmpty{color:#68758a;font-size:14px;padding:14px 0}
+@media(max-width:760px){.productForm{grid-template-columns:1fr}}

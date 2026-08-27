@@ -1,15 +1,35 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-type Product = { id: number; icon: string; name: string; provider: string; price: number; type: 'digital' | 'physical' | 'service'; meta: string; badge?: string };
+type ApiProduct = { id: string; name: string; network: string | null; category: string; basePrice: number; variablePrice: boolean; minAmount: number | null; maxAmount: number | null; images: string[]; description: string | null; inStock: boolean; provider: 'BUNDLESHOPGH' | 'MUVIIN' | 'ADMIN' | 'REFER2BUNDLE' };
+type Product = { id: string; icon: string; name: string; provider: string; price: number; type: 'digital' | 'physical' | 'service'; meta: string; badge?: string; qty?: number };
+type Zone = { id: string; name: string; city: string; baseFee: number; minimumOrder: number | null; estimatedMinutes: number; pickupAvailable: boolean; active: boolean };
+type Address = { id: string; label: string; recipientName: string; phone: string; address: string; city: string };
 
-const products: Product[] = [
-  { id: 1, icon: '📶', name: 'MTN 10GB Data Bundle', provider: 'BundleShopGH', price: 43, type: 'digital', meta: 'Non-expiry • estimated 5–10 mins', badge: 'Top pick' },
-  { id: 2, icon: '▶', name: 'Netflix Premium', provider: 'Muviin', price: 55, type: 'digital', meta: 'Subscription package', badge: 'Popular' },
-  { id: 3, icon: '🎧', name: 'Oraimo Wireless Earbuds', provider: 'DigiTech Kumasi', price: 180, type: 'physical', meta: 'Delivery today • In stock' },
-  { id: 4, icon: '⚡', name: 'Electricity Credit', provider: 'Verified utility service', price: 10, type: 'digital', meta: 'Enter your meter number' },
-];
+const providerName = (source: ApiProduct['provider']) => source === 'BUNDLESHOPGH' ? 'BundleShopGH' : source === 'MUVIIN' ? 'Muviin' : source === 'REFER2BUNDLE' ? 'Refer2Bundle' : 'DigiMart';
+const kindOf = (p: ApiProduct): Product['type'] => p.provider === 'ADMIN' ? (p.category === 'Services' ? 'service' : 'physical') : 'digital';
+const iconFor = (p: ApiProduct): string => {
+  const c = `${p.category} ${p.name}`.toLowerCase();
+  if (/afa|registration/.test(c)) return '🪪';
+  if (/data bundle/.test(c)) return '📶';
+  if (/airtime/.test(c)) return '📞';
+  if (/stream|netflix|spotify|subscription/.test(c)) return '▶';
+  if (/result|checker|bece|wassce|education/.test(c)) return '🎓';
+  if (/electronic|tech|charger|power|phone|earbud/.test(c)) return '🎧';
+  if (/grocer|rice|food/.test(c)) return '🛒';
+  if (/service|repair/.test(c)) return '🧰';
+  if (/bill|utility|electric/.test(c)) return '⚡';
+  return '🛍️';
+};
+const metaFor = (p: ApiProduct): string => {
+  const kind = kindOf(p);
+  if (kind === 'digital') return /afa/i.test(p.category) ? 'AFA registration · processed after payment' : p.provider === 'BUNDLESHOPGH' || p.provider === 'REFER2BUNDLE' ? 'Fast data delivery after payment' : 'Delivered after payment is verified';
+  if (kind === 'service') return 'Scheduled service • verified provider';
+  return 'Physical delivery • verified seller';
+};
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export default function Home() {
   const [cart, setCart] = useState<Product[]>([]);
@@ -25,13 +45,38 @@ export default function Home() {
   const [trackPhone, setTrackPhone] = useState('');
   const [trackResult, setTrackResult] = useState('');
   const [announcement, setAnnouncement] = useState('Orders are monitored in real time. Confirm delivery timing before payment.');
-  // Loading browser-persisted cart state is intentionally performed once after mount.
+  const [user, setUser] = useState<{ id: string; phone: string; role: string } | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [paymentFeePct, setPaymentFeePct] = useState(1.95);
+  // delivery state
+  const [method, setMethod] = useState<'DELIVERY'|'PICKUP'>('DELIVERY');
+  const [zoneId, setZoneId] = useState('');
+  const [addressId, setAddressId] = useState('');
+  const [useNewAddress, setUseNewAddress] = useState(true);
+  const [addrName, setAddrName] = useState('');
+  const [addrPhone, setAddrPhone] = useState('');
+  const [addrText, setAddrText] = useState('');
+  const [addrCity, setAddrCity] = useState('');
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { const stored = localStorage.getItem('digimart_cart'); if (stored) { try { setCart(JSON.parse(stored)); } catch {} } setCartReady(true); }, []);
+  useEffect(() => { const stored = localStorage.getItem('digimart_cart'); if (stored) { try { const parsed = JSON.parse(stored); if (Array.isArray(parsed)) setCart(parsed.filter((x): x is Product => !!x && typeof x.id === 'string' && typeof x.price === 'number')); } catch {} } setCartReady(true); }, []);
   useEffect(() => { if (cartReady) localStorage.setItem('digimart_cart', JSON.stringify(cart)); }, [cart, cartReady]);
   useEffect(() => { fetch('/api/announcement').then(r=>r.json()).then(r=>{if(r.data?.isActive)setAnnouncement(r.data.message)}).catch(()=>undefined); }, []);
-  const total = useMemo(() => cart.reduce((sum, item) => sum + item.price, 0), [cart]);
+  useEffect(() => { fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(r => { if (r?.data) setUser(r.data); }).catch(() => undefined); }, []);
+  useEffect(() => { fetch('/api/products').then(r=>r.json()).then(r=>{ if(Array.isArray(r.data)) setProducts(r.data.map((p: ApiProduct, i: number) => ({ id: p.id, icon: iconFor(p), name: p.name, provider: providerName(p.provider), price: p.basePrice, type: kindOf(p), meta: metaFor(p), badge: i === 0 ? 'Top pick' : undefined }))); }).catch(()=>undefined); }, []);
+  useEffect(() => { fetch('/api/delivery-zones').then(r=>r.json()).then(r=>{ if(Array.isArray(r.data)) { setZones(r.data); setZoneId(r.data[0]?.id ?? ''); } }).catch(()=>undefined); fetch('/api/config').then(r=>r.json()).then(r=>{ if(typeof r.data?.paymentFeePct==='number') setPaymentFeePct(r.data.paymentFeePct); }).catch(()=>undefined); }, []);
+  useEffect(() => { if (user) { fetch('/api/addresses').then(r => r.ok ? r.json() : null).then(r => { if (Array.isArray(r?.data)) { setAddresses(r.data); const def = r.data.find((a: Address) => (a as Address & { isDefault?: boolean }).isDefault) ?? r.data[0]; if (def) { setAddressId(def.id); setUseNewAddress(false); } } }).catch(()=>undefined); } }, [user]);
+
+  const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * (item.qty ?? 1), 0), [cart]);
+  const hasPhysical = cart.some(item => item.type === 'physical');
+  const zone = zones.find(z => z.id === zoneId);
+  const deliveryFee = !hasPhysical ? 0 : method === 'PICKUP' ? 0 : zone ? (zone.minimumOrder !== null && subtotal >= zone.minimumOrder ? 0 : zone.baseFee) : 0;
+  const paymentFee = round2((Math.max(0, subtotal) + deliveryFee) * paymentFeePct / 100);
+  const total = round2(subtotal + deliveryFee + paymentFee);
   const removeItem = (index: number) => setCart(cart.filter((_, i) => i !== index));
+  const changeQty = (index: number, delta: number) => setCart(cart.map((item, i) => i === index ? { ...item, qty: Math.min(10, Math.max(1, (item.qty ?? 1) + delta)) } : item));
   const message = (text: string) => { setToast(text); setTimeout(() => setToast(''), 3000); };
   const add = (product: Product, direct = false) => {
     setCart(direct ? [product] : [...cart, product]);
@@ -46,12 +91,25 @@ export default function Home() {
   const checkout = async () => {
     if (!cart.length) return message('Add an item before continuing to checkout.');
     if (!/^0\d{9}$/.test(phone)) return message('Enter a valid 10-digit Ghana Mobile Money number.');
+    let deliveryAddress: { recipientName: string; phone: string; address: string; city: string } | undefined;
+    if (hasPhysical && method === 'DELIVERY') {
+      if (!zoneId) return message('Select a delivery zone.');
+      if (!useNewAddress && addressId) { const a = addresses.find(x => x.id === addressId); if (a) deliveryAddress = { recipientName: a.recipientName, phone: a.phone, address: a.address, city: a.city }; }
+      else {
+        if (!/^0\d{9}$/.test(addrPhone)) return message('Enter a valid recipient phone number for delivery.');
+        if (addrName.trim().length < 2 || addrText.trim().length < 4 || addrCity.trim().length < 2) return message('Complete the delivery address (name, address, city).');
+        deliveryAddress = { recipientName: addrName.trim(), phone: addrPhone, address: addrText.trim(), city: addrCity.trim() };
+      }
+    }
     setProcessing(true); setOrderNotice('');
     try {
-      const response = await fetch('/api/orders/checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ customerPhone:phone, provider:network, items:cart.map(p=>({productId:p.id === 1 ? 'bs-mtn-10gb' : p.id === 2 ? 'mu-netflix-premium' : p.id === 4 ? 'mu-airtime-10' : 'admin-earbuds',qty:1,metadata:{}})), couponCode: couponCode || undefined, idempotencyKey:crypto.randomUUID() }) });
+      const body: Record<string, unknown> = { customerPhone: phone, provider: network, items: cart.map(p=>({productId:p.id, qty:p.qty ?? 1, metadata:{}})), couponCode: couponCode || undefined, idempotencyKey: crypto.randomUUID() };
+      if (hasPhysical) { body.deliveryMethod = method; body.deliveryZoneId = zoneId; if (method === 'DELIVERY' && !useNewAddress && addressId) body.deliveryAddressId = addressId; else if (method === 'DELIVERY' && deliveryAddress) body.deliveryAddress = deliveryAddress; }
+      const response = await fetch('/api/orders/checkout', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message ?? 'Checkout could not start.');
-      setOrderNotice(`Order ${result.data.orderId}: subtotal GH₵${result.data.subtotal.toFixed(2)}, discount GH₵${result.data.discount.toFixed(2)}, final total GH₵${result.data.total.toFixed(2)}. ${result.data.instructions}`);
+      const d = result.data;
+      setOrderNotice(`Order ${d.orderId}: subtotal GH₵${Number(d.subtotal).toFixed(2)}${d.discount ? `, discount −GH₵${Number(d.discount).toFixed(2)}` : ''}${d.deliveryFee ? `, delivery GH₵${Number(d.deliveryFee).toFixed(2)}` : ''}, MoMo fee GH₵${Number(d.paymentFee).toFixed(2)}, total GH₵${Number(d.total).toFixed(2)}. ${d.instructions}`);
     } catch (error) { message(error instanceof Error ? error.message : 'Checkout could not start.'); }
     finally { setProcessing(false); }
   };
@@ -60,9 +118,10 @@ export default function Home() {
     <div className="notice"><span>●</span> {announcement}</div>
     <header className="topbar">
       <div className="logo"><span>Digi</span><b>Mart</b></div>
-      <div className="deliver">Delivering to <strong>Kumasi, Ghana</strong>⌄</div>
+      <div className="deliver">Delivering to <strong>Accra, Ghana</strong>⌄</div>
       <label className="search">⌕ <input placeholder="Search products, services and stores" /></label>
-      <button className="bell" aria-label="Notifications">♧</button>
+      <Link className="bell" href="/notifications" aria-label="Notifications">♧</Link>
+      {user ? <Link className="signinButton" href="/account">◉ My account</Link> : <Link className="signinButton" href="/sign-in">Sign in</Link>}
       <button className="cartButton" onClick={() => setCheckoutOpen(true)} aria-label="Cart">🛒 <em>{cart.length}</em></button>
     </header>
 
@@ -72,23 +131,60 @@ export default function Home() {
     </section>
 
     <section className="content"><div className="sectionHead"><h2>Quick actions</h2></div><div className="quickActions">
-      <button onClick={() => document.getElementById('shop')?.scrollIntoView({behavior:'smooth'})}>📶 <span>Buy Data</span></button><button onClick={() => message('Bill payments use approved utility providers.')}>⚡ <span>Pay a Bill</span></button><button onClick={() => setCheckoutOpen(true)}>🧾 <span>View Cart</span></button><button onClick={() => message('Reseller applications include payment and approval stages.')}>🏪 <span>Become a Reseller</span></button>
+      <button onClick={() => document.getElementById('shop')?.scrollIntoView({behavior:'smooth'})}>📶 <span>Buy Data</span></button><button onClick={() => message('Bill payments use approved utility providers.')}>⚡ <span>Pay a Bill</span></button><button onClick={() => setCheckoutOpen(true)}>🧾 <span>View Cart</span></button><Link href="/reseller">🏪 <span>Become a Reseller</span></Link>
     </div>
-    <div className="sectionHead"><h2>Shop by category</h2><button>See all</button></div><div className="categories">
-      {['📶 Data & Airtime','🛒 Groceries','💻 Electronics','⚡ Bills','🎓 Education','🧰 Services'].map(c => <button key={c}><span>{c.split(' ')[0]}</span>{c.substring(c.indexOf(' ') + 1)}</button>)}
+    <div className="sectionHead"><h2>Shop by category</h2><button onClick={() => document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' })}>See all</button></div><div className="categories" id="categories">
+      {['📶 Data & Airtime','🛒 Groceries','💻 Electronics','⚡ Bills','🎓 Education','🧰 Services'].map(c => <button key={c} onClick={() => document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' })}><span>{c.split(' ')[0]}</span>{c.substring(c.indexOf(' ') + 1)}</button>)}
     </div>
-    <div className="sectionHead" id="shop"><div><h2>Popular in Kumasi</h2><p>Trusted providers and DigiMart sellers</p></div><button>View all</button></div>
-    <div className="productGrid">{products.map(product => <article className="product" key={product.id}>
-      {product.badge && <span className="badge">{product.badge}</span>}<div className="productArt">{product.icon}</div><h3>{product.name}</h3><p>{product.provider}</p><strong>GH₵{product.price.toFixed(2)}</strong><small><i/> {product.meta}</small>
+    <div className="sectionHead" id="shop"><div><h2>Popular on DigiMart</h2><p>Trusted providers and DigiMart sellers</p></div><button onClick={() => document.getElementById('shop')?.scrollIntoView({ behavior: 'smooth' })}>View all</button></div>
+    <div className="productGrid">{products.length ? products.map(product => <article className="product" key={product.id}>
+      {product.badge && <span className="badge">{product.badge}</span>}<div className="productArt">{product.icon}</div><h3><Link href={`/product/${product.id}`}>{product.name}</Link></h3><p>{product.provider}</p><strong>GH₵{product.price.toFixed(2)}</strong><small><i/> {product.meta}</small>
       <button onClick={() => add(product, product.type === 'digital')}>{product.type === 'digital' ? 'Buy now' : 'Add to cart'}</button>
-    </article>)}</div>
+    </article>) : <p className="catalogEmpty">The catalog is being prepared. Please check back shortly.</p>}</div>
     <div className="sectionHead"><h2>Featured reseller store</h2><button>Explore stores</button></div>
     <article className="store"><div className="storeCover"/><div className="storeInfo"><div className="storeLogo">JD</div><div><h3>Joedai Store <span>✓ Verified</span></h3><p>Affordable data, devices and essentials</p></div><button onClick={() => message('Joedai Store storefront selected.')}>Visit store →</button></div></article>
     <section className="tracking"><p>KNOW WHAT IS HAPPENING</p><h2>Track any DigiMart order</h2><span>Use an order number and the phone number used at checkout.</span><div className="trackForm"><input value={trackId} onChange={e => setTrackId(e.target.value.toUpperCase())} placeholder="Order number e.g. DM-48291"/><input value={trackPhone} onChange={e => setTrackPhone(e.target.value.replace(/\D/g, '').slice(0,10))} inputMode="numeric" placeholder="Phone number"/><button onClick={trackOrder}>Track order</button></div>{trackResult && <p className="trackResult">{trackResult}</p>}</section>
+    <section className="faqSection" id="faq"><h2>Frequently asked questions</h2>
+      {[['How fast is data bundle delivery?','Most MTN, Telecel and AirtelTigo bundles arrive within 5–10 minutes of verified payment. Fulfilment only starts after payment is server-side verified.'],['Who pays the Mobile Money fee?','The buyer pays a small MoMo processing fee at checkout, shown before you confirm — DigiMart does not deduct it from sellers or resellers.'],['How do I get my items?','Digital items are delivered to your phone instantly. Physical items are delivered by riders across our delivery zones, or you can pick up at selected zones.'],['How do I become a reseller?','Apply from the Become a Reseller page, pay the registration fee, and after admin approval you get your own store with custom markups.']].map(([q,a]) => <details key={q}><summary>{q}</summary><p>{a}</p></details>)}
+    </section>
     </section>
 
-    <nav className="mobileNav"><button>⌂<span>Home</span></button><button>▦<span>Categories</span></button><button onClick={() => setCheckoutOpen(true)}>🛒<span>Cart</span></button><button>◴<span>Orders</span></button><button>◉<span>Account</span></button></nav>
-    {checkoutOpen && <div className="overlay" onClick={() => setCheckoutOpen(false)}><section className="checkout" onClick={e => e.stopPropagation()}><button className="close" onClick={() => setCheckoutOpen(false)}>×</button><p className="eyebrow">DIGIMART CHECKOUT</p><h2>Secure checkout</h2><p className="sub">Digital orders begin only after payment is server-side verified.</p><div className="items">{cart.length ? cart.map((p, i) => <div className="line" key={`${p.id}-${i}`}><span>{p.icon} {p.name}</span><b>GH₵{p.price.toFixed(2)} <button className="removeItem" onClick={() => removeItem(i)}>×</button></b></div>) : <p>Your cart is empty.</p>}</div><div className="line total"><span>Total</span><b>GH₵{total.toFixed(2)}</b></div><input value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} placeholder="Coupon code (optional)"/><input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0,10))} inputMode="numeric" placeholder="Mobile Money number e.g. 055 123 4567"/><div className="networkSelect">{(['MTN','Telecel','AirtelTigo'] as const).map(n => <button type="button" key={n} className={network === n ? 'selected' : ''} onClick={() => setNetwork(n)}>{n}</button>)}</div>{orderNotice && <p className="orderNotice">{orderNotice}</p>}<button className="payment" disabled={processing} onClick={checkout}>{processing ? 'Starting secure payment…' : 'Continue to secure payment'}</button><small>Payment is verified by DigiMart before a provider, seller or rider starts fulfilment.</small></section></div>}
+    <nav className="mobileNav"><Link href="/">⌂<span>Home</span></Link><button onClick={() => document.getElementById('categories')?.scrollIntoView({ behavior: 'smooth' })}>▦<span>Categories</span></button><button onClick={() => setCheckoutOpen(true)}>🛒<span>Cart</span></button><Link href="/orders">◴<span>Orders</span></Link><Link href={user ? '/account' : '/sign-in'}>◉<span>Account</span></Link></nav>
+    {checkoutOpen && <div className="overlay" onClick={() => setCheckoutOpen(false)}><section className="checkout" onClick={e => e.stopPropagation()}><button className="close" onClick={() => setCheckoutOpen(false)}>×</button><p className="eyebrow">DIGIMART CHECKOUT</p><h2>Secure checkout</h2><p className="sub">Digital orders begin only after payment is server-side verified.</p><div className="items">{cart.length ? cart.map((p, i) => <div className="line" key={`${p.id}-${i}`}><span>{p.icon} {p.name}</span><b>GH₵{(p.price * (p.qty ?? 1)).toFixed(2)} <span className="qtyStepper"><button onClick={() => changeQty(i, -1)} aria-label="Decrease">−</button><em>{p.qty ?? 1}</em><button onClick={() => changeQty(i, 1)} aria-label="Increase">+</button></span><button className="removeItem" onClick={() => removeItem(i)}>×</button></b></div>) : <p>Your cart is empty.</p>}</div>
+      {hasPhysical && <div className="deliveryBlock">
+        <p className="eyebrow">PHYSICAL ITEMS — DELIVERY</p>
+        <div className="methodChips"><button type="button" className={method === 'DELIVERY' ? 'selected' : ''} onClick={() => setMethod('DELIVERY')}>🚚 Delivery</button><button type="button" className={method === 'PICKUP' ? 'selected' : ''} onClick={() => setMethod('PICKUP')}>🏪 Pickup</button></div>
+        {zones.length === 0 && <p className="deliveryHint">No delivery zones available yet — physical delivery is being set up.</p>}
+        {zones.length > 0 && <>
+        <label>Zone<select value={zoneId} onChange={e => setZoneId(e.target.value)}>{zones.map(z => <option key={z.id} value={z.id}>{z.name} ({z.city}) — {method === 'PICKUP' ? (z.pickupAvailable ? 'pickup available' : 'pickup unavailable') : `GH₵${z.baseFee.toFixed(2)} · ~${z.estimatedMinutes} min`}</option>)}</select></label>
+        {method === 'DELIVERY' && (zone && <p className="deliveryHint">{zone.minimumOrder !== null && subtotal >= zone.minimumOrder ? `Free delivery (orders over GH₵${zone.minimumOrder.toFixed(2)})` : `Delivery fee GH₵${zone.baseFee.toFixed(2)} · estimated ${zone.estimatedMinutes} minutes`}</p>)}
+        {method === 'PICKUP' && zone && !zone.pickupAvailable && <p className="deliveryHint">Pickup is not available in this zone — switch to Delivery.</p>}
+        {method === 'DELIVERY' && <>
+          {addresses.length > 0 && <div className="addressToggle"><button type="button" className={!useNewAddress ? 'selected' : ''} onClick={() => setUseNewAddress(false)}>Saved address</button><button type="button" className={useNewAddress ? 'selected' : ''} onClick={() => setUseNewAddress(true)}>New address</button></div>}
+          {!useNewAddress && addresses.length > 0 ? <label>Saved address<select value={addressId} onChange={e => setAddressId(e.target.value)}>{addresses.map(a => <option key={a.id} value={a.id}>{a.label}: {a.recipientName}, {a.address}, {a.city}</option>)}</select></label>
+          : <div className="addressForm">
+            <input value={addrName} onChange={e => setAddrName(e.target.value)} placeholder="Recipient name"/>
+            <input value={addrPhone} onChange={e => setAddrPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} inputMode="numeric" placeholder="Recipient phone"/>
+            <input value={addrText} onChange={e => setAddrText(e.target.value)} placeholder="Street / landmark"/>
+            <input value={addrCity} onChange={e => setAddrCity(e.target.value)} placeholder="City / town"/>
+          </div>}
+        </>}
+        </>}
+      </div>}
+      <input value={couponCode} onChange={e => setCouponCode(e.target.value.toUpperCase())} placeholder="Coupon code (optional)"/>
+      <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0,10))} inputMode="numeric" placeholder="Mobile Money number e.g. 055 123 4567"/>
+      <div className="networkSelect">{(['MTN','Telecel','AirtelTigo'] as const).map(n => <button type="button" key={n} className={network === n ? 'selected' : ''} onClick={() => setNetwork(n)}>{n}</button>)}</div>
+      <div className="feeSummary">
+        <div><span>Subtotal</span><b>GH₵{subtotal.toFixed(2)}</b></div>
+        {hasPhysical && <div><span>Delivery ({method === 'PICKUP' ? 'pickup' : 'rider'})</span><b>{deliveryFee === 0 ? 'Free' : `GH₵${deliveryFee.toFixed(2)}`}</b></div>}
+        <div><span>MoMo fee ({paymentFeePct}% — paid by buyer)</span><b>GH₵{paymentFee.toFixed(2)}</b></div>
+        <div className="total"><span>Total</span><b>GH₵{total.toFixed(2)}</b></div>
+      </div>
+      {orderNotice && <p className="orderNotice">{orderNotice}</p>}
+      <button className="payment" disabled={processing} onClick={checkout}>{processing ? 'Starting secure payment…' : `Pay GH₵${total.toFixed(2)} securely`}</button>
+      <small>Payment is verified by DigiMart before a provider, seller or rider starts fulfilment. Coupon discounts are applied on the server at payment time.</small>
+    </section></div>}
     {toast && <div className="toast">{toast}</div>}
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html: JSON.stringify({'@context':'https://schema.org','@type':'FAQPage','mainEntity':[{'@type':'Question','name':'How fast is data bundle delivery in Ghana?','acceptedAnswer':{'@type':'Answer','text':'Most MTN, Telecel and AirtelTigo bundles from DigiMart arrive within 5–10 minutes of verified Mobile Money payment.'}},{'@type':'Question','name':'Who pays the Mobile Money fee on DigiMart?','acceptedAnswer':{'@type':'Answer','text':'The buyer pays a small MoMo processing fee shown at checkout. DigiMart does not deduct it from sellers or resellers.'}}]})}} />
   </main>;
 }

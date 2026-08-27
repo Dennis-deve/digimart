@@ -3,3 +3,51 @@
 .networkSelect{display:flex;gap:8px;margin:-4px 0 14px}.networkSelect button{flex:1;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:9px 4px;font-size:12px;font-weight:800}.networkSelect button.selected{background:#fff1b5;border-color:#e3b700;color:var(--navy)}.payment:disabled{opacity:.65;cursor:wait}.orderNotice{background:#e7f8f2;color:#006d5a;border-radius:10px;padding:10px;font-size:12px;line-height:1.4}
 .trackForm{flex-wrap:wrap}.trackForm input{min-width:180px}.trackResult{margin:12px 0 0;background:#173363;color:#fff;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.4}@media(max-width:760px){.trackForm input{min-width:0}}
 .removeItem{margin-left:7px;border:0;background:#fff0f1;color:#b42332;width:21px;height:21px;border-radius:50%;font-weight:900}
+/* Auth + navigation entry points */
+.signinButton{height:43px;padding:0 16px;border-radius:12px;background:var(--navy);color:#fff;border:1px solid var(--navy);font-weight:800;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
+a.bell{display:grid;place-items:center;text-decoration:none;color:inherit}
+.quickActions a{white-space:nowrap;background:#fff2bc;color:var(--navy);border:0;border-radius:13px;padding:13px 17px;font-weight:800;text-decoration:none;display:inline-block}
+.quickActions a span{padding-left:4px}
+.mobileNav a{display:block;border:0;background:transparent;color:#617087;font-size:18px;text-decoration:none;line-height:1;padding:0}
+.mobileNav a span{display:block;font-size:10px;margin-top:3px}
+/* Real catalog rendering */
+.product h3 a{color:inherit;text-decoration:none}
+.catalogEmpty{grid-column:1/-1;color:var(--muted);font-size:14px;padding:18px 0}
+.btnLike{display:inline-block;background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;font-weight:800;text-decoration:none}
+/* Physical checkout: delivery picker + live fees */
+.deliveryBlock{border:1px solid var(--line);border-radius:13px;padding:13px;margin:13px 0;text-align:left}
+.deliveryBlock .eyebrow{color:var(--blue)}
+.methodChips,.addressToggle{display:flex;gap:8px;margin:9px 0}
+.methodChips button,.addressToggle button{flex:1;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px;font-weight:800;font-size:13px;cursor:pointer}
+.methodChips button.selected,.addressToggle button.selected{background:var(--navy);color:#fff;border-color:var(--navy)}
+.deliveryBlock label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;margin:9px 0}
+.deliveryBlock select{border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;font-weight:400}
+.deliveryHint{font-size:12px;color:var(--muted);margin:6px 0}
+.addressForm{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.addressForm input{border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit;margin:0}
+.feeSummary{border-top:1px solid var(--line);margin-top:8px;padding-top:6px}
+.feeSummary div{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:#3c4a63}
+.feeSummary .total{font-size:17px;font-weight:900;color:var(--ink);border-top:1px solid var(--line);margin-top:5px;padding-top:9px}
+.faqSection{margin-top:34px;background:#fff;border:1px solid var(--line);border-radius:19px;padding:24px;text-align:left}
+.faqSection h2{margin:0 0 8px;font-size:22px;letter-spacing:-.7px}
+.faqSection details{border-bottom:1px solid var(--line);padding:12px 2px}
+.faqSection summary{font-weight:800;cursor:pointer;font-size:14px}
+.faqSection p{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+.siteFooter{max-width:1140px;margin:0 auto 40px;padding:18px 0 0;border-top:1px solid var(--line);color:var(--muted);font-size:12px;text-align:center}
+.siteFooter a{color:var(--blue);font-weight:700;text-decoration:none}
+.qtyStepper{display:inline-flex;align-items:center;gap:2px;margin:0 6px;vertical-align:middle}
+.qtyStepper button{width:24px;height:24px;border:1px solid var(--line);background:#fff;border-radius:7px;font-size:14px;font-weight:900;line-height:1;cursor:pointer;padding:0}
+.qtyStepper em{font-style:normal;min-width:20px;text-align:center;font-size:13px;font-weight:800}
+/* Global footer (all pages) */
+.globalFooter{background:#071c42;color:#c9d6ef;text-align:center;padding:22px 16px 26px;margin-top:10px}
+.globalFooter .gfCredit{font-size:14px;font-weight:700}
+.globalFooter .gfCredit b{color:#ffd52b}
+.globalFooter .gfCredit a{color:#fff;text-decoration:none;font-weight:800}
+.globalFooter .gfLinks{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0 8px;font-size:12px}
+.globalFooter .gfLinks a{color:#9fb4dd;text-decoration:none;font-weight:700}
+.globalFooter .gfLinks a:hover{color:#fff}
+.globalFooter small{display:block;font-size:11px;color:#7d90b8}
+/* AFA registration form */
+.afaForm{display:grid;gap:9px;margin-bottom:12px;border:1px dashed #d6deeb;border-radius:12px;padding:12px}
+.afaForm label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:800}
+.afaForm input{border:1px solid #e2e7ef;border-radius:10px;padding:10px;font:inherit;font-weight:400}

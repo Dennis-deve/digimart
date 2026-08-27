@@ -14,23 +14,25 @@ model Announcement {
 }
 
 model Order {
-  id                String      @id
-  customerId        String?
-  customerPhone     String
-  resellerId        String?
-  total             Decimal     @db.Decimal(10, 2)
-  paymentRef        String?
-  status            OrderStatus @default(PENDING)
-  createdAt         DateTime    @default(now())
-  couponCode        String?
-  discount          Decimal     @default(0) @db.Decimal(10, 2)
-  deliveryZoneId    String?
-  deliveryMethod    String?
-  deliveryFee       Decimal     @default(0) @db.Decimal(10, 2)
-  deliveryAddressId String?
-  User              User?       @relation(fields: [customerId], references: [id])
-  Reseller          Reseller?   @relation(fields: [resellerId], references: [id])
-  OrderItem         OrderItem[]
+  id                      String      @id
+  customerId              String?
+  customerPhone           String
+  resellerId              String?
+  total                   Decimal     @db.Decimal(10, 2)
+  paymentRef              String?
+  status                  OrderStatus @default(PENDING)
+  createdAt               DateTime    @default(now())
+  couponCode              String?
+  discount                Decimal     @default(0) @db.Decimal(10, 2)
+  deliveryZoneId          String?
+  deliveryMethod          String?
+  deliveryFee             Decimal     @default(0) @db.Decimal(10, 2)
+  paymentFee              Decimal     @default(0) @db.Decimal(10, 2)
+  deliveryAddressId       String?
+  deliveryAddressSnapshot Json?
+  User                    User?       @relation(fields: [customerId], references: [id])
+  Reseller                Reseller?   @relation(fields: [resellerId], references: [id])
+  OrderItem               OrderItem[]
 }
 
 model OrderItem {
@@ -50,13 +52,15 @@ model OrderItem {
 
 model Payout {
   id          String       @id
-  resellerId  String
+  resellerId  String?
+  sellerId    String?
   amount      Decimal      @db.Decimal(10, 2)
   status      PayoutStatus @default(PENDING)
   momoRef     String?
   requestedAt DateTime     @default(now())
   paidAt      DateTime?
-  Reseller    Reseller     @relation(fields: [resellerId], references: [id])
+  Reseller    Reseller?    @relation(fields: [resellerId], references: [id])
+  Seller      Seller?      @relation(fields: [sellerId], references: [id])
 }
 
 model PlatformSettings {
@@ -89,6 +93,9 @@ model Product {
   updatedAt             DateTime
   OrderItem             OrderItem[]
   ResellerProductMarkup ResellerProductMarkup[]
+  seller                Seller?                 @relation(fields: [sellerId], references: [id])
+  sellerId              String?
+  reviews               Review[]
 
   @@unique([source, sourceProductId])
   @@index([network])
@@ -105,6 +112,11 @@ model Reseller {
   feePaid               Boolean                 @default(false)
   feePaymentRef         String?
   defaultMarkupPct      Decimal                 @default(0) @db.Decimal(5, 2)
+  payoutName            String?
+  payoutMomo            String?
+  payoutNetwork         String?
+  storeTagline          String?
+  storeColor            String?
   commissionPctOverride Decimal?                @db.Decimal(5, 2)
   earningsBalance       Decimal                 @default(0) @db.Decimal(10, 2)
   createdAt             DateTime                @default(now())
@@ -127,25 +139,31 @@ model ResellerProductMarkup {
 }
 
 model User {
-  id           String    @id
-  phone        String    @unique
-  email        String?   @unique
-  passwordHash String
-  role         Role      @default(CUSTOMER)
-  momoNumber   String?
-  createdAt    DateTime  @default(now())
-  Order        Order[]
-  Reseller     Reseller?
+  id               String             @id
+  phone            String             @unique
+  email            String?            @unique
+  passwordHash     String
+  role             Role               @default(CUSTOMER)
+  momoNumber       String?
+  createdAt        DateTime           @default(now())
+  Order            Order[]
+  Reseller         Reseller?
+  Review           Review[]
+  Seller           Seller?
+  PushSubscription PushSubscription[]
 }
 
 model SupportTicket {
-  id        String   @id
-  topic     String
-  orderNo   String?
-  message   String
-  status    String   @default("OPEN")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  id             String           @id
+  userId         String?
+  phone          String?
+  topic          String
+  orderNo        String?
+  message        String
+  status         String           @default("OPEN")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+  SupportMessage SupportMessage[]
 
   @@index([status])
 }
@@ -205,12 +223,19 @@ model Rider {
 }
 
 model Seller {
-  id        String   @id
-  userId    String   @unique
-  storeName String
-  storeSlug String   @unique
-  approved  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id              String    @id
+  userId          String    @unique
+  User            User      @relation(fields: [userId], references: [id])
+  storeName       String
+  storeSlug       String    @unique
+  approved        Boolean   @default(false)
+  payoutName      String?
+  payoutMomo      String?
+  payoutNetwork   String?
+  earningsBalance Decimal   @default(0) @db.Decimal(10, 2)
+  createdAt       DateTime  @default(now())
+  Product         Product[]
+  Payout          Payout[]
 }
 
 model Refund {
@@ -303,6 +328,7 @@ enum ProductSource {
   BUNDLESHOPGH
   MUVIIN
   ADMIN
+  REFER2BUNDLE
 }
 
 enum ResellerStatus {
@@ -318,4 +344,40 @@ enum Role {
   SELLER
   RIDER
   SUPPORT
+}
+
+model Review {
+  id        String   @id
+  productId String
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  Product   Product  @relation(fields: [productId], references: [id])
+  User      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, productId])
+  @@index([productId])
+}
+
+model SupportMessage {
+  id            String        @id
+  ticketId      String
+  senderRole    String
+  senderName    String
+  message       String
+  createdAt     DateTime      @default(now())
+  SupportTicket SupportTicket @relation(fields: [ticketId], references: [id])
+
+  @@index([ticketId])
+}
+
+model PushSubscription {
+  id        String   @id
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id])
 }
