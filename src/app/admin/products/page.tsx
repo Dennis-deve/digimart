@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-type AdminProduct = { id: string; name: string; source: 'BUNDLESHOPGH' | 'MUVIIN' | 'ADMIN' | 'REFER2BUNDLE'; network: string | null; category: string; basePrice: number; inStock: boolean; isExcluded: boolean; images: string[]; description: string | null; orderCount: number };
+type AdminProduct = { id: string; name: string; source: 'BUNDLESHOPGH' | 'MUVIIN' | 'ADMIN' | 'REFER2BUNDLE'; network: string | null; category: string; basePrice: number; inStock: boolean; isExcluded: boolean; images: string[]; description: string | null; orderCount: number; sellerId?: string | null; approvalStatus?: string; onPlatform?: boolean };
 
 const iconFor = (p: AdminProduct) => {
   const c = `${p.category} ${p.name}`.toLowerCase();
@@ -30,6 +30,14 @@ export default function AdminProducts() {
 
   const flash = (msg: string, err = false) => { if (err) setError(msg); else setNotice(msg); setTimeout(() => { setError(''); setNotice(''); }, 4000); };
 
+  const setApproval = async (p: AdminProduct, approvalStatus: 'APPROVED' | 'REJECTED') => {
+    setBusyId(p.id);
+    try { const r = await fetch(`/api/admin/products/${encodeURIComponent(p.id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approvalStatus }) }); const d = await r.json(); if (!r.ok) throw new Error(d.message ?? 'Update failed.'); flash(`${p.name} ${approvalStatus === 'APPROVED' ? 'approved — now live in its store' : 'rejected'}.`); load(); } catch (e) { flash(e instanceof Error ? e.message : 'Update failed.', true); } finally { setBusyId(''); }
+  };
+  const togglePlatform = async (p: AdminProduct) => {
+    setBusyId(p.id);
+    try { const r = await fetch(`/api/admin/products/${encodeURIComponent(p.id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ onPlatform: !p.onPlatform }) }); const d = await r.json(); if (!r.ok) throw new Error(d.message ?? 'Update failed.'); flash(`${p.name} ${!p.onPlatform ? 'now also on the main marketplace' : 'removed from the main marketplace'}.`); load(); } catch (e) { flash(e instanceof Error ? e.message : 'Update failed.', true); } finally { setBusyId(''); }
+  };
   const toggleStock = async (p: AdminProduct) => {
     setBusyId(p.id);
     try {
@@ -78,8 +86,11 @@ export default function AdminProducts() {
           <span>{sourceName(p.source)}</span>
           <span>{kindOf(p)}</span>
           <strong>GH₵{p.basePrice.toFixed(2)}</strong>
-          <em className={p.inStock && !p.isExcluded ? 'active' : 'outofstock'}>{p.isExcluded ? 'Excluded' : p.inStock ? 'Active' : 'Out of stock'}</em>
+          <em className={p.approvalStatus === 'PENDING' ? 'outofstock' : p.approvalStatus === 'REJECTED' ? 'outofstock' : p.inStock && !p.isExcluded ? 'active' : 'outofstock'}>{p.approvalStatus === 'PENDING' ? '⏳ Awaiting approval' : p.approvalStatus === 'REJECTED' ? 'Rejected' : p.isExcluded ? 'Excluded' : p.inStock ? 'Active' : 'Out of stock'}</em>
           <div className="rowActions">
+            {p.approvalStatus === 'PENDING' && <button disabled={busyId === p.id} onClick={() => setApproval(p, 'APPROVED')}>✓ Approve</button>}
+            {p.approvalStatus === 'PENDING' && <button className="danger" disabled={busyId === p.id} onClick={() => setApproval(p, 'REJECTED')}>Reject</button>}
+            {p.approvalStatus === 'APPROVED' && p.sellerId && <button disabled={busyId === p.id} onClick={() => togglePlatform(p)}>{p.onPlatform ? 'Platform ✓ (remove)' : 'Add to platform'}</button>}
             <Link className="btnLike" style={{ padding: '8px 11px', fontSize: 12 }} href={`/admin/products/${p.id}/edit`}>Edit</Link>
             <button disabled={busyId === p.id} onClick={() => toggleStock(p)} title={p.inStock ? 'Hide from store' : 'Show in store'}>{p.inStock ? 'Hide' : 'Show'}</button>
             <button className="danger" disabled={busyId === p.id} onClick={() => remove(p)} title={p.orderCount > 0 ? 'Has orders — cannot delete' : 'Delete'}>Delete</button>

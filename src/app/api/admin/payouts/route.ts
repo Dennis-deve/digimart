@@ -12,11 +12,11 @@ export async function GET(request: Request) {
   });
   return NextResponse.json({ status: 'success', data: payouts.map(p => ({
     id: p.id, amount: Number(p.amount), status: p.status, requestedAt: p.requestedAt, paidAt: p.paidAt, momoRef: p.momoRef,
-    recipient: p.Seller?.payoutMomo ?? p.Reseller?.payoutMomo ?? null,
-    recipientName: p.Seller?.payoutName ?? p.Reseller?.payoutName ?? null,
-    recipientNetwork: p.Seller?.payoutNetwork ?? p.Reseller?.payoutNetwork ?? null,
+    recipient: p.Seller?.payoutMomo ?? p.Reseller?.payoutMomo ?? ((p.destination as { momo?: string } | null)?.momo ?? null),
+    recipientName: p.Seller?.payoutName ?? p.Reseller?.payoutName ?? ((p.destination as { name?: string } | null)?.name ?? null),
+    recipientNetwork: p.Seller?.payoutNetwork ?? p.Reseller?.payoutNetwork ?? ((p.destination as { network?: string } | null)?.network ?? null),
     store: p.Seller?.storeName ?? p.Reseller?.storeName ?? null,
-    kind: p.Seller ? 'seller' : 'reseller',
+    kind: p.Seller ? 'seller' : p.Reseller ? 'reseller' : ((p.destination as { kind?: string } | null)?.kind === 'RIDER_EARNINGS' ? 'rider' : 'customer'),
     moolreReady: Boolean((p.Seller?.payoutMomo ?? p.Reseller?.payoutMomo) && transfersConfigured() && transferChannelFor((p.Seller?.payoutNetwork ?? p.Reseller?.payoutNetwork) ?? '') !== undefined),
   })) });
 }

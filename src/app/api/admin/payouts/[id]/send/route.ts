@@ -14,7 +14,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const payout = await prisma.payout.findUnique({ where: { id }, include: { Seller: true, Reseller: true } });
   if (!payout) return NextResponse.json({ status: 'error', message: 'Payout not found.' }, { status: 404 });
   if (payout.status !== 'PENDING') return NextResponse.json({ status: 'error', message: 'This payout is already processed.' }, { status: 409 });
-  const holder = payout.Seller ?? payout.Reseller;
+  const dest = (payout.destination ?? null) as { momo?: string; network?: string } | null;
+  const holder = payout.Seller ?? payout.Reseller ?? (dest ? { payoutMomo: dest.momo ?? null, payoutNetwork: dest.network ?? null } : null);
   const recipient = holder?.payoutMomo;
   const network = holder?.payoutNetwork ?? '';
   const channel = transferChannelFor(network);

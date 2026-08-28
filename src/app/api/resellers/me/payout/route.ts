@@ -4,7 +4,7 @@ import {requireRole} from '@/lib/guards';
 import {prisma} from '@/lib/db';
 
 export async function GET(request: Request) {
-  const guard = await requireRole(request, ['RESELLER']);
+  const guard = await requireRole(request, ['CUSTOMER','RESELLER']);
   if (guard.response) return guard.response;
   const reseller = await prisma.reseller.findUnique({ where: { userId: guard.session!.id } });
   if (!reseller) return NextResponse.json({ status: 'error', message: 'Reseller profile not found.' }, { status: 404 });
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 const payoutSchema = z.object({ payoutName: z.string().min(2).max(120).optional(), payoutMomo: z.string().regex(/^0\d{9}$/, 'Use a valid 10-digit Mobile Money number.').optional(), payoutNetwork: z.enum(['MTN', 'Telecel', 'AirtelTigo']).optional(), storeTagline: z.string().max(160).optional(), storeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Use a hex color like #ffd52b.').optional() }).refine(v => v.payoutName && v.payoutMomo && v.payoutNetwork || (!v.payoutName && !v.payoutMomo && !v.payoutNetwork), { message: 'Set the full payout account (name, number and network) together.' });
 
 export async function PATCH(request: Request) {
-  const guard = await requireRole(request, ['RESELLER']);
+  const guard = await requireRole(request, ['CUSTOMER','RESELLER']);
   if (guard.response) return guard.response;
   const reseller = await prisma.reseller.findUnique({ where: { userId: guard.session!.id } });
   if (!reseller) return NextResponse.json({ status: 'error', message: 'Reseller profile not found.' }, { status: 404 });

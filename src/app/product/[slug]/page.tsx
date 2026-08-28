@@ -6,7 +6,6 @@ import ReviewPanel from './review-panel';
 
 export const dynamic = 'force-dynamic';
 
-const providerName = (source: string) => source === 'BUNDLESHOPGH' ? 'BundleShopGH' : source === 'MUVIIN' ? 'Muviin' : source === 'REFER2BUNDLE' ? 'Refer2Bundle' : 'DigiMart';
 const iconFor = (category: string, name: string): string => {
   const c = `${category} ${name}`.toLowerCase();
   if (/afa|registration/.test(c)) return '🪪';
@@ -52,7 +51,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   }
 
   const kindLabel = product.source === 'ADMIN' ? (product.category === 'Services' ? 'SERVICE BOOKING' : 'PHYSICAL PRODUCT') : 'DIGITAL DELIVERY';
-  const provider = providerName(product.source);
+  const provider = 'DigiMart'; // upstream source is intentionally hidden from buyers
   const icon = iconFor(product.category, product.name);
   const details = product.source === 'BUNDLESHOPGH' || product.source === 'REFER2BUNDLE'
     ? ['Recipient number is the Mobile Money number used at checkout', 'Non-expiry bundle', 'Current fulfilment estimate: 5–10 minutes']
@@ -60,12 +59,13 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       ? ['Delivered after payment is server-side verified', 'Track progress any time under Orders', 'Support is available daily']
       : ['Delivered through DigiMart delivery zones', 'Delivery fee confirmed at checkout', 'Track your delivery live'];
   const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const variants: string[] = Array.isArray(product.variants) ? (product.variants as string[]).filter(v => typeof v === 'string') : [];
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'Product',
     name: product.name, description: product.description ?? `${product.name} on DigiMart Ghana`,
     brand: { '@type': 'Brand', name: 'DigiMart' },
     ...(reviews.length ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: avg.toFixed(1), reviewCount: reviews.length } } : {}),
-    offers: { '@type': 'Offer', priceCurrency: 'GHS', price: Number(product.basePrice).toFixed(2), availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock', seller: { '@type': 'Organization', name: `DigiMart via ${provider}` } },
+    offers: { '@type': 'Offer', priceCurrency: 'GHS', price: Number(product.basePrice).toFixed(2), availability: product.inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock', seller: { '@type': 'Organization', name: 'DigiMart' } },
   };
 
   return <main className="productPage">
@@ -79,7 +79,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         <h2>GH₵{Number(product.basePrice).toFixed(2)}</h2>
         <p className="description">{product.description ?? 'Fulfilled through DigiMart after payment is verified.'}</p>
         <div className="fulfilment"><b>How this order works</b><ol>{details.map(d => <li key={d}>{d}</li>)}</ol></div>
-        <BuyPanel productId={product.id} digital={product.source !== 'ADMIN'} resellerSlug={resellerSlug} service={product.category === 'AFA Registration' ? 'afa' : product.category === 'AFA Registration (No ID)' ? 'afa-noid' : undefined} />
+        <BuyPanel productId={product.id} digital={product.source !== 'ADMIN'} resellerSlug={resellerSlug} variants={variants} service={product.category === 'AFA Registration' ? 'afa' : product.category === 'AFA Registration (No ID)' ? 'afa-noid' : undefined} />
         <small>Secure payment is requested through Moolre. Fulfilment starts only after payment verification. A small Mobile Money processing fee is added at checkout.</small>
       </article>
     </section>

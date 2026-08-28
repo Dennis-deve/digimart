@@ -36,3 +36,31 @@ describe('computePaymentFee (buyer pays Moolre charge)', () => {
     expect(computePaymentFee(100)).toBe(0);
   });
 });
+
+describe('seller/reseller commission model', () => {
+  it('own-store sales default to 0% platform commission', async () => {
+    delete process.env.SELLER_DIRECT_COMMISSION_PCT;
+    const { sellerDirectCommissionPct } = await import('../src/lib/fees');
+    expect(sellerDirectCommissionPct()).toBe(0);
+  });
+  it('platform sales default to 10% commission', async () => {
+    delete process.env.SELLER_COMMISSION_PCT;
+    const { sellerPlatformCommissionPct } = await import('../src/lib/fees');
+    expect(sellerPlatformCommissionPct()).toBe(10);
+  });
+  it('store affiliate cut defaults to 2%', async () => {
+    delete process.env.STORE_AFFILIATE_PCT;
+    const { storeAffiliatePct } = await import('../src/lib/fees');
+    expect(storeAffiliatePct()).toBe(2);
+  });
+});
+
+describe('partner registration fees', () => {
+  it('seller fee defaults to GH₵30, reseller via env', async () => {
+    delete process.env.SELLER_REGISTRATION_FEE;
+    process.env.RESELLER_REGISTRATION_FEE = '75';
+    const { sellerRegistrationFee } = await import('../src/lib/fees');
+    expect(sellerRegistrationFee()).toBe(30);
+    expect(Number(process.env.RESELLER_REGISTRATION_FEE)).toBe(75);
+  });
+});

@@ -24,8 +24,41 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function Store({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  await prisma.storeStat.create({ data: { id: crypto.randomUUID(), slug } }).catch(() => undefined);
   const reseller = await prisma.reseller.findUnique({ where: { storeSlug: slug }, include: { User: { select: { phone: true } } } });
   if (!reseller || reseller.status !== 'APPROVED') {
+    const seller = await prisma.seller.findUnique({ where: { storeSlug: slug }, include: { User: { select: { phone: true } } } });
+    if (!seller || !seller.approved) {
+      return <main className="faqSection" style={{ maxWidth: 800, margin: '30px auto' }}>
+        <h1>Store not found</h1>
+        <p style={{ color: '#4c5a72' }}>This store does not exist or is not currently approved on DigiMart.</p>
+        <p><Link className="btnLike" href="/">Browse the marketplace →</Link></p>
+      </main>;
+    }
+    const own = await prisma.product.findMany({ where: { sellerId: seller.id, approvalStatus: 'APPROVED', inStock: true, isExcluded: false }, orderBy: { createdAt: 'desc' } });
+    const initials = seller.storeName.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    return <main className="publicStore">
+      <header><Link className="logo" href="/"><span>Digi</span><b>Mart</b></Link><Link href="/">← All of DigiMart</Link></header>
+      <section className="dmStoreHero" style={seller.storeBanner ? { backgroundImage: `linear-gradient(100deg,#071c42cc,#071c4299),url(${seller.storeBanner})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: 'linear-gradient(120deg,#071c42,#123a8f)' }}>
+        <div className="dmStoreAvatar">{initials}</div>
+        <div><p>VERIFIED DIGIMART SELLER STORE</p><h1>{seller.storeName}</h1><span>Direct from the owner — seller-set prices, DigiMart-secured payment &amp; delivery.</span></div>
+      </section>
+      <section className="dmStoreBody">
+        <h2>Products in this store</h2>
+        <p className="dmStoreNote">Payment and fulfilment are handled securely by DigiMart.</p>
+        {own.length === 0 ? <p className="dmStoreNote">This store has no products yet — check back soon.</p> :
+          <div className="productGrid">{own.map(p => <article className="product" key={p.id}>
+            <div className="productArt">{iconFor(p.category, p.name)}</div>
+            <h3><Link href={`/product/${p.id}?store=${seller.storeSlug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{p.name}</Link></h3>
+            <p>{p.category}</p><strong>GH₵{Number(p.basePrice).toFixed(2)}</strong>
+            <small>Physical delivery</small>
+            <Link href={`/product/${p.id}?store=${seller.storeSlug}`} className="btnLike" style={{ textAlign: 'center' }}>Buy from this store</Link>
+          </article>)}</div>}
+      </section>
+      <footer className="dmStoreFooter">Store link: <b>/store/{seller.storeSlug}</b> · <a href={`/store/${seller.storeSlug}/poster`} target="_blank" rel="noreferrer">🖨 QR poster</a> — share it anywhere. Questions? <Link href="/support">Contact DigiMart support</Link>.</footer>
+    </main>;
+  }
+  if (false) {
     return <main className="faqSection" style={{ maxWidth: 800, margin: '30px auto' }}>
       <h1>Store not found</h1>
       <p style={{ color: '#4c5a72' }}>This store does not exist or is not currently approved on DigiMart.</p>
@@ -42,7 +75,7 @@ export default async function Store({ params }: { params: Promise<{ slug: string
 
   return <main className="publicStore">
     <header><Link className="logo" href="/"><span>Digi</span><b>Mart</b></Link><Link href="/">← All of DigiMart</Link></header>
-    <section className="dmStoreHero" style={{ background: `linear-gradient(120deg, ${accent}, #071c42 70%)` }}>
+    <section className="dmStoreHero" style={reseller.storeBanner ? { backgroundImage: `linear-gradient(100deg,#071c42cc,#071c4299),url(${reseller.storeBanner})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: `linear-gradient(120deg, ${accent}, #071c42 70%)` }}>
       <div className="dmStoreAvatar">{initials}</div>
       <div>
         <p>VERIFIED DIGIMART RESELLER STORE</p>
@@ -63,6 +96,6 @@ export default async function Store({ params }: { params: Promise<{ slug: string
           <Link href={`/product/${p.id}?store=${reseller.storeSlug}`} className="btnLike" style={{ textAlign: 'center' }}>Buy from this store</Link>
         </article>)}</div>}
     </section>
-    <footer className="dmStoreFooter">Store link: <b>/store/{reseller.storeSlug}</b> — share it anywhere. Questions? <Link href="/support">Contact DigiMart support</Link>.</footer>
+    <footer className="dmStoreFooter">Store link: <b>/store/{reseller.storeSlug}</b> · <a href={`/store/${reseller.storeSlug}/poster`} target="_blank" rel="noreferrer">🖨 QR poster</a> — share it anywhere. Questions? <Link href="/support">Contact DigiMart support</Link>.</footer>
   </main>;
 }

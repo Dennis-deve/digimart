@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 
-export default function BuyPanel({ productId, digital, resellerSlug, service }: { productId: string; digital: boolean; resellerSlug?: string; service?: 'afa' | 'afa-noid' }) {
+export default function BuyPanel({ productId, digital, resellerSlug, service, variants = [] }: { productId: string; digital: boolean; resellerSlug?: string; service?: 'afa' | 'afa-noid'; variants?: string[] }) {
   const [phone, setPhone] = useState('');
   const [network, setNetwork] = useState<'MTN' | 'Telecel' | 'AirtelTigo'>('MTN');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [variant, setVariant] = useState('');
   const [fullName, setFullName] = useState('');
   const [idCard, setIdCard] = useState('');
   const [location, setLocation] = useState('');
@@ -43,6 +44,7 @@ export default function BuyPanel({ productId, digital, resellerSlug, service }: 
   };
 
   return <div className="recipient">
+    {variants.length > 0 && <div className="afaForm"><label>Choose option<select value={variant} onChange={e => setVariant(e.target.value)}>{<option value='' disabled>Select…</option>}{variants.map(v => <option key={v} value={v}>{v}</option>)}</select></label></div>}
     {service && <div className="afaForm">
       <label>Full name{service === 'afa' ? ' (as on Ghana Card)' : ''}<input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Kwame Mensah" /></label>
       {service === 'afa' && <label>Ghana Card number<input value={idCard} onChange={e => setIdCard(e.target.value.toUpperCase())} placeholder="GHA-123456789-1" /></label>}

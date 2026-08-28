@@ -153,7 +153,7 @@ export default function Home() {
     <div className="chipRow">{categories.map(c => <button key={c} className={category === c ? 'selected' : ''} onClick={() => setCategory(c)}>{c}</button>)}</div>
 
     <div className="productGrid">{products.length ? products.map(product => <article className="product" key={product.id}>
-      <div className="productArt"><span>{product.icon}</span><i className="catTag">{product.category}</i></div><h3><Link href={`/product/${product.id}`}>{product.name}</Link></h3><p>{product.provider}</p><strong>GH₵{product.price.toFixed(2)}</strong><small><i/> {product.meta}</small>
+      <div className="productArt"><span>{product.icon}</span><i className="catTag">{product.category}</i></div><h3><Link href={`/product/${product.id}`}>{product.name}</Link></h3><p>✓ DigiMart verified</p><strong>GH₵{product.price.toFixed(2)}</strong><small><i/> {product.meta}</small>
       <button onClick={() => add(product, product.type === 'digital')}>{product.type === 'digital' ? 'Buy now' : 'Add to cart'}</button>
     </article>) : !searching ? <p className="catalogEmpty">Nothing found{debounced ? ` for “${debounced}”` : ''}. Try another search or category.</p> : <p className="catalogEmpty">Searching…</p>}</div>
 

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import StoreGrowthPanel from '@/components/store-growth-panel';
 
 type ResellerData = { reseller: { id: string; storeName: string; storeSlug: string; status: string; feePaid: boolean; earningsBalance: number; defaultMarkupPct: number; payoutName: string | null; payoutMomo: string | null; payoutNetwork: string | null; storeTagline: string | null; storeColor: string | null } };
 type Payout = { id: string; amount: number; status: string; requestedAt: string };
@@ -22,12 +23,14 @@ export default function ResellerPage() {
   const [pMomo, setPMomo] = useState('');
   const [pNet, setPNet] = useState('MTN');
   const [markup, setMarkup] = useState('');
+  const [linkOrders, setLinkOrders] = useState<{ id: string; createdAt: string; status: string; total: number; itemCount: number; firstItem: string; earnings: number }[] | null>(null);
   const [tagline, setTagline] = useState('');
   const [storeColor, setStoreColor] = useState('#071c42');
 
   const load = () => {
     fetch('/api/resellers/me/payout').then(r => { if (r.status === 401) { setAuthError('Sign in to manage your reseller store.'); return null; } if (r.status === 404) return null; return r.json(); }).then(r => { if (r?.status === 'success') { setData(r.data); setMarkup(String(r.data.reseller.defaultMarkupPct)); } }).catch(() => undefined);
     fetch('/api/resellers/me/payouts').then(r => r.ok ? r.json() : null).then(r => { if (Array.isArray(r?.data)) setPayouts(r.data); }).catch(() => undefined);
+    fetch('/api/resellers/me/orders').then(r => r.ok ? r.json() : null).then(r => { if (Array.isArray(r?.data)) setLinkOrders(r.data); }).catch(() => undefined);
   };
   useEffect(() => { load(); }, []);
   const flash = (msg: string, err = false) => { if (err) setError(msg); else setNotice(msg); setTimeout(() => { setError(''); setNotice(''); }, 6000); };
@@ -38,7 +41,7 @@ export default function ResellerPage() {
       const r = await fetch('/api/resellers/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storeName, storeSlug, momoNumber: momo }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.message);
-      setApplied({ fee: d.data.registrationFee, slug: d.data.storeSlug });
+      setApplied({ fee: d.data.registrationFee, slug: d.data.storeSlug }); load();
     } catch (e) { flash(e instanceof Error ? e.message : 'Could not apply.', true); }
     finally { setBusy(false); }
   };
@@ -137,6 +140,16 @@ export default function ResellerPage() {
         </form>
         {data.reseller.payoutMomo && data.reseller.earningsBalance > 0 && <p className="adminEmpty">Current: <b>{data.reseller.payoutName}</b> · {data.reseller.payoutMomo} ({data.reseller.payoutNetwork}) — <button onClick={requestPayout} disabled={busy}>Request payout of GH₵{data.reseller.earningsBalance.toFixed(2)}</button></p>}
       </section>
+      <section className="catalogTable">
+        <h2 style={{ margin: '0 0 8px' }}>📦 Orders via my link</h2>
+        {linkOrders === null ? <p className="adminEmpty">Loading…</p> : linkOrders.length === 0 ? <p className="adminEmpty">No orders through your store link yet — share it to start earning.</p> : linkOrders.map(o => <div className="orderRow" key={o.id} style={{ gridTemplateColumns: 'minmax(130px,1.3fr) minmax(90px,1fr) auto auto', borderTop: '1px solid #e6ebf4' }}>
+          <div><b>{o.id}</b><small>{o.firstItem}{o.itemCount > 1 ? ` +${o.itemCount - 1}` : ''}</small></div>
+          <span>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+          <strong>GH₵{o.total.toFixed(2)} <small style={{ color: '#00836f', fontWeight: 800 }}>+{o.earnings.toFixed(2)}</small></strong>
+          <em className={`badge ${o.status.toLowerCase()}`}>{o.status}</em>
+        </div>)}
+      </section>
+      <StoreGrowthPanel storeSlug={data.reseller.storeSlug} canManage={true} />
       {payouts.length > 0 && <section className="catalogTable" style={{ marginTop: 15 }}>
         <h2 style={{ marginTop: 0 }}>Payout history</h2>
         {payouts.map(p => <div className="orderRow" key={p.id} style={{ gridTemplateColumns: 'minmax(120px,1fr) minmax(90px,1fr) auto auto' }}>

@@ -145,3 +145,32 @@ input,select,textarea{font-size:16px!important}/* stops iOS zoom-on-focus */
 }
 @media(max-width:380px){.hero h1{font-size:29px}.productGrid{gap:9px}.signinButton{padding:0 9px}}
 @media(hover:none){.product:hover,.storeCardV2:hover{transform:none}/* no sticky hover on touch */}
+
+/* ===== Icon & control polish (v4) ===== */
+/* Centered icon buttons with consistent padding everywhere */
+.bell,.cartButton{display:inline-flex;align-items:center;justify-content:center;font-size:17px}
+.cartButton em{margin-left:4px}
+.topbar .logo{display:inline-flex;align-items:center}
+/* Product art icons: consistent size + optical centering */
+.productArt{display:grid;place-items:center;font-size:46px;line-height:1;position:relative}
+.productArt span{transform:translateY(-2px)}
+@media(max-width:760px){.productArt{font-size:36px;height:96px}}
+/* Bottom nav: proper icon/label rhythm + hit areas */
+.mobileNav{gap:0}
+.mobileNav a,.mobileNav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:21px;min-height:56px;border-radius:12px}
+.mobileNav a span,.mobileNav button span{font-size:10px;font-weight:700;letter-spacing:.2px}
+/* Bigger close/stepper touch targets on phones */
+.close{min-width:36px;min-height:36px;display:grid;place-items:center}
+.qtyStepper button{min-width:30px;min-height:30px}
+.removeItem{min-width:30px;min-height:30px}
+/* Notice banner readable on phones */
+.notice{padding:9px 14px;font-size:12px;line-height:1.4}
+/* Trust/hero icons alignment */
+.trustRow div,.authMarks b{align-items:center}
+/* Empty states centered */
+.catalogEmpty{grid-column:1/-1;text-align:center;padding:34px 14px;color:var(--muted);font-size:14px}
+/* Checkout modal inputs: comfortable padding + full width */
+.checkout input,.checkout select{width:100%;padding:13px 14px}
+/* Section heads aligned on mobile */
+.sectionHead{align-items:center;gap:8px}
+.sectionHead>button{min-height:36px}

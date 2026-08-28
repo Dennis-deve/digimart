@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const guard = await requireRole(request, ['ADMIN']);
   if (guard.response) return guard.response;
   const products = await prisma.product.findMany({ orderBy: { createdAt: 'desc' }, include: { _count: { select: { OrderItem: true } } } });
-  return NextResponse.json({ status: 'success', data: products.map(p => ({ id: p.id, name: p.name, source: p.source, network: p.network, category: p.category, basePrice: Number(p.basePrice), inStock: p.inStock, isExcluded: p.isExcluded, images: p.images, description: p.description, orderCount: p._count.OrderItem })) });
+  return NextResponse.json({ status: 'success', data: products.map(p => ({ id: p.id, name: p.name, source: p.source, network: p.network, category: p.category, basePrice: Number(p.basePrice), inStock: p.inStock, isExcluded: p.isExcluded, images: p.images, description: p.description, orderCount: p._count.OrderItem, sellerId: p.sellerId, approvalStatus: p.approvalStatus, onPlatform: p.onPlatform })) });
 }
 
 export async function POST(request: Request) {

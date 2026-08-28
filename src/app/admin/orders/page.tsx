@@ -34,8 +34,10 @@ export default function AdminOrders() {
       <Link href="/admin">Overview</Link>
       <Link href="/admin/orders" className="active">Orders</Link>
       <Link href="/admin/products">Products</Link>
+      <Link href="/admin/partners">Partners</Link>
+      <Link href="/admin/payouts">Payouts</Link>
       <Link href="/admin/support">Support</Link>
-      <Link href="/admin/announcements">Announcements</Link>
+      <Link href="/admin/integrations">Integrations</Link>
       <Link href="/admin/coupons">Coupons</Link>
       <Link href="/admin/payouts">Payouts</Link>
       <Link href="/admin/refunds">Refunds</Link>

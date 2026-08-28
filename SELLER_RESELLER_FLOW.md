@@ -37,15 +37,18 @@
                                 SMS confirmation when money lands.
 ```
 
-## B. SELLER — fulfill physical products, earn per sale
+## B. SELLER — own inventory, own prices, earn per sale
 
 ```
 1. SIGN UP / SIGN IN            Normal customer account
         |
-2. APPLY                        /seller → "Apply to sell" (store name + slug)
-                                (No fee — admin review only)
+2. APPLY                        /seller → "Apply to sell" (store name + slug + MoMo number)
         |
-3. ADMIN APPROVAL              /admin → Sellers → Approve
+2b. PAY REGISTRATION FEE        GH₵30 one-time (SELLER_REGISTRATION_FEE) via Moolre —
+                                webhook verifies, OR admin marks it received.
+                                No approval until the fee is confirmed (same as resellers).
+        |
+3. ADMIN APPROVAL              /admin → Partners → Sellers → Approve
                                 → User role becomes SELLER
         |
 4. GET PRODUCTS ASSIGNED       ADMIN lists products in the catalog

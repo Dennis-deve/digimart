@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
-type Seller = { id: string; storeName: string; storeSlug: string; approved: boolean; earningsBalance: number; payoutMomo: string | null; user: { phone: string; email: string | null } };
+type Seller = { id: string; storeName: string; storeSlug: string; approved: boolean; feePaid: boolean; registrationFee: number; earningsBalance: number; payoutMomo: string | null; user: { phone: string; email: string | null } };
+type RiderRow = { id: string; active: boolean; city: string | null; earningsBalance: number; user: { phone: string; email: string | null } };
 type Reseller = { id: string; storeName: string; storeSlug: string; status: string; feePaid: boolean; registrationFee: number; earningsBalance: number; user: { phone: string; email: string | null } };
 
 export default function AdminPartners() {
   const [sellers, setSellers] = useState<Seller[] | null>(null);
+  const [riders, setRiders] = useState<RiderRow[] | null>(null);
   const [resellers, setResellers] = useState<Reseller[] | null>(null);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -16,6 +18,7 @@ export default function AdminPartners() {
   const load = () => {
     fetch('/api/admin/sellers').then(r => r.json()).then(d => setSellers(d.data ?? [])).catch(() => setSellers([]));
     fetch('/api/admin/resellers').then(r => r.json()).then(d => setResellers(d.data ?? [])).catch(() => setResellers([]));
+    fetch('/api/admin/riders').then(r => r.json()).then(d => setRiders(d.data ?? [])).catch(() => setRiders([]));
   };
   useEffect(() => { load(); }, []);
   const flash = (msg: string, err = false) => { if (err) setError(msg); else setNotice(msg); setTimeout(() => { setError(''); setNotice(''); }, 6000); };
@@ -54,10 +57,24 @@ export default function AdminPartners() {
       <h2 style={{ margin: '0 0 10px' }}>Seller applications {sellers && <small style={{ color: '#68758a' }}>({sellers.filter(s => !s.approved).length} pending)</small>}</h2>
       {sellers === null ? <p className="adminEmpty">Loading…</p> : sellers.length === 0 ? <p className="adminEmpty">No seller applications yet. Customers apply at /seller.</p> : sellers.map(s => <article key={s.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px,1.4fr) minmax(110px,1fr) auto auto', gap: 10, alignItems: 'center', padding: '12px 0', borderTop: '1px solid #e6ebf4' }}>
         <div><b>{s.storeName}</b><small style={{ display: 'block', color: '#68758a' }}>/{s.storeSlug} · {s.user.phone}</small></div>
-        <span>Earnings GH₵{s.earningsBalance.toFixed(2)}{s.payoutMomo ? ` · →${s.payoutMomo}` : ''}</span>
+        <span>Fee GH₵{s.registrationFee.toFixed(2)} — {s.feePaid ? <b style={{ color: '#00836f' }}>paid ✓</b> : <b style={{ color: '#a11c1c' }}>unpaid</b>} · Earnings GH₵{s.earningsBalance.toFixed(2)}</span>
         <em className={`badge ${s.approved ? 'completed' : 'pending'}`}>{s.approved ? 'APPROVED' : 'PENDING'}</em>
         <div className="rowActions">
-          {!s.approved && <button disabled={busyId === `sapp-${s.id}`} onClick={() => call(`/api/admin/sellers/${s.id}/approve`, `${s.storeName} approved — owner is now a SELLER.`)}>Approve</button>}
+          {!s.feePaid && !s.approved && <button disabled={busyId === `sfee-${s.id}`} onClick={() => call(`/api/admin/sellers/${s.id}/mark-fee-paid`, 'Seller fee marked as received (manual).')} title="Use when the fee was paid outside Moolre">Mark fee received</button>}
+          {!s.approved && s.feePaid && <button disabled={busyId === `sapp-${s.id}`} onClick={() => call(`/api/admin/sellers/${s.id}/approve`, `${s.storeName} approved — owner is now a SELLER.`)}>Approve</button>}
+        </div>
+      </article>)}
+    </section>
+
+    <section className="catalogTable" style={{ marginTop: 15 }}>
+      <h2 style={{ margin: '0 0 10px' }}>Riders {riders && <small style={{ color: '#68758a' }}>({riders.filter(r => !r.active).length} pending)</small>}</h2>
+      {riders === null ? <p className="adminEmpty">Loading…</p> : riders.length === 0 ? <p className="adminEmpty">No rider applications yet. Users apply at /rider.</p> : riders.map(r => <article key={r.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px,1.4fr) minmax(110px,1fr) auto auto', gap: 10, alignItems: 'center', padding: '12px 0', borderTop: '1px solid #e6ebf4' }}>
+        <div><b>{r.user.phone}</b><small style={{ display: 'block', color: '#68758a' }}>{r.city ?? '—'}</small></div>
+        <span>Earnings GH₵{r.earningsBalance.toFixed(2)}</span>
+        <em className={`badge ${r.active ? 'completed' : 'pending'}`}>{r.active ? 'ACTIVE' : 'PENDING'}</em>
+        <div className="rowActions">
+          {!r.active && <button disabled={busyId === `ract-${r.id}`} onClick={() => call(`/api/admin/riders/${r.id}/activate`, `${r.user.phone} activated — now a RIDER.`)}>Activate</button>}
+          {r.active && <button className="danger" disabled={busyId === `rdea-${r.id}`} onClick={() => call(`/api/admin/riders/${r.id}/activate?action=deactivate`, `${r.user.phone} paused.`)}>Pause</button>}
         </div>
       </article>)}
     </section>

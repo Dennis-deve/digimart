@@ -1,5 +1,6 @@
 import {createNotification} from '@/lib/notify-user';
 import {prisma} from '@/lib/db';
+import {sellerDirectCommissionPct, sellerPlatformCommissionPct, storeAffiliatePct} from '@/lib/fees';
 import {sendSms} from '@/lib/notify';
 const round2 = (n: number) => Math.round(n * 100) / 100;
 export const sellerCommissionPct = () => { const v = Number(process.env.SELLER_COMMISSION_PCT ?? '10'); return Number.isFinite(v) && v >= 0 && v <= 100 ? v : 10; };
@@ -32,11 +33,27 @@ export async function recomputeAndSettle(orderId: string) {
 
   // Seller earnings for physical/admin items (gross minus platform commission)
   const bySeller = new Map<string, number>();
+  const affiliateFor = new Map<string, number>();
   for (const item of order.OrderItem) {
     const seller = item.Product?.seller;
-    if (item.source !== 'ADMIN' || !seller?.approved) continue;
-    const net = round2(Number(item.basePrice) * item.qty * (100 - sellerCommissionPct()) / 100);
-    bySeller.set(seller.id, (bySeller.get(seller.id) ?? 0) + net);
+    if (item.source !== 'ADMIN') { if (order.sellerStoreId) affiliateFor.set('_store', (affiliateFor.get('_store') ?? 0) + Number(item.basePrice) * item.qty); continue; }
+    if (seller?.approved) {
+      const ownStore = order.sellerStoreId === seller.id;
+      const pct = ownStore ? sellerDirectCommissionPct() : sellerPlatformCommissionPct();
+      const net = round2(Number(item.basePrice) * item.qty * (100 - pct) / 100);
+      bySeller.set(seller.id, (bySeller.get(seller.id) ?? 0) + net);
+    } else if (order.sellerStoreId) {
+      affiliateFor.set('_store', (affiliateFor.get('_store') ?? 0) + Number(item.basePrice) * item.qty);
+    }
+  }
+  // Affiliate: the store owner earns a small cut when products that are NOT theirs sell via their link
+  const affiliateBase = affiliateFor.get('_store') ?? 0;
+  if (affiliateBase > 0 && order.sellerStoreId) {
+    const storeSeller = await prisma.seller.findUnique({ where: { id: order.sellerStoreId } });
+    if (storeSeller?.approved) {
+      const cut = round2(affiliateBase * storeAffiliatePct() / 100);
+      if (cut > 0) { bySeller.set(storeSeller.id, (bySeller.get(storeSeller.id) ?? 0) + cut); }
+    }
   }
   for (const [sellerId, amount] of bySeller) {
     if (amount <= 0) continue;

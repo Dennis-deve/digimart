@@ -3,7 +3,7 @@ import {requireRole} from '@/lib/guards';
 import {prisma} from '@/lib/db';
 
 export async function POST(request: Request) {
-  const guard = await requireRole(request, ['SELLER']);
+  const guard = await requireRole(request, ['CUSTOMER','SELLER']);
   if (guard.response) return guard.response;
   const seller = await prisma.seller.findUnique({ where: { userId: guard.session!.id } });
   if (!seller) return NextResponse.json({ status: 'error', message: 'Seller profile not found.' }, { status: 404 });
