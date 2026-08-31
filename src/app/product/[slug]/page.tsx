@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import BuyPanel from './buy-panel';
+import { isExternalProduct } from '@/lib/product-rules';
 import ReviewPanel from './review-panel';
 
 export const dynamic = 'force-dynamic';
@@ -32,9 +33,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ store?: string }> }) {
+export default async function ProductPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ store?: string; seller?: string }> }) {
   const { slug } = await params;
-  const { store: resellerSlug } = await searchParams;
+  const { store: resellerSlug, seller: sellerContext } = await searchParams;
   const product = await prisma.product.findUnique({ where: { id: slug } });
   const reviews = await prisma.review.findMany({ where: { productId: slug }, take: 200 });
 
@@ -59,6 +60,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       ? ['Delivered after payment is server-side verified', 'Track progress any time under Orders', 'Support is available daily']
       : ['Delivered through DigiMart delivery zones', 'Delivery fee confirmed at checkout', 'Track your delivery live'];
   const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const external = !resellerSlug && !sellerContext && isExternalProduct({ externalCheckoutUrl: product.externalCheckoutUrl, providerCost: product.providerCost, basePrice: product.basePrice });
   const variants: string[] = Array.isArray(product.variants) ? (product.variants as string[]).filter(v => typeof v === 'string') : [];
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'Product',
@@ -79,7 +81,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         <h2>GH₵{Number(product.basePrice).toFixed(2)}</h2>
         <p className="description">{product.description ?? 'Fulfilled through DigiMart after payment is verified.'}</p>
         <div className="fulfilment"><b>How this order works</b><ol>{details.map(d => <li key={d}>{d}</li>)}</ol></div>
-        <BuyPanel productId={product.id} digital={product.source !== 'ADMIN'} resellerSlug={resellerSlug} variants={variants} service={product.category === 'AFA Registration' ? 'afa' : product.category === 'AFA Registration (No ID)' ? 'afa-noid' : undefined} />
+        {external ? <div className="recipient"><p className="sub" style={{ margin: '0 0 10px' }}>This item is fulfilled directly by our verified partner — you will complete payment on their secure checkout.</p><a className="btnLike" style={{ display: 'block', textAlign: 'center', padding: '14px' }} href={product.externalCheckoutUrl!} target="_blank" rel="noreferrer">Continue to secure checkout ↗</a></div> : <BuyPanel productId={product.id} digital={product.source !== 'ADMIN'} resellerSlug={resellerSlug} variants={variants} service={product.category === 'AFA Registration' ? 'afa' : product.category === 'AFA Registration (No ID)' ? 'afa-noid' : undefined} /> }
         <small>Secure payment is requested through Moolre. Fulfilment starts only after payment verification. A small Mobile Money processing fee is added at checkout.</small>
       </article>
     </section>

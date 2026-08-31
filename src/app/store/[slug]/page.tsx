@@ -49,10 +49,10 @@ export default async function Store({ params }: { params: Promise<{ slug: string
         {own.length === 0 ? <p className="dmStoreNote">This store has no products yet — check back soon.</p> :
           <div className="productGrid">{own.map(p => <article className="product" key={p.id}>
             <div className="productArt">{iconFor(p.category, p.name)}</div>
-            <h3><Link href={`/product/${p.id}?store=${seller.storeSlug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{p.name}</Link></h3>
+            <h3><Link href={`/product/${p.id}?seller=${seller.storeSlug}`} style={{ color: 'inherit', textDecoration: 'none' }}>{p.name}</Link></h3>
             <p>{p.category}</p><strong>GH₵{Number(p.basePrice).toFixed(2)}</strong>
             <small>Physical delivery</small>
-            <Link href={`/product/${p.id}?store=${seller.storeSlug}`} className="btnLike" style={{ textAlign: 'center' }}>Buy from this store</Link>
+            <Link href={`/product/${p.id}?seller=${seller.storeSlug}`} className="btnLike" style={{ textAlign: 'center' }}>Buy from this store</Link>
           </article>)}</div>}
       </section>
       <footer className="dmStoreFooter">Store link: <b>/store/{seller.storeSlug}</b> · <a href={`/store/${seller.storeSlug}/poster`} target="_blank" rel="noreferrer">🖨 QR poster</a> — share it anywhere. Questions? <Link href="/support">Contact DigiMart support</Link>.</footer>

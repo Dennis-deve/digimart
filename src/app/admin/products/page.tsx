@@ -38,6 +38,18 @@ export default function AdminProducts() {
     setBusyId(p.id);
     try { const r = await fetch(`/api/admin/products/${encodeURIComponent(p.id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ onPlatform: !p.onPlatform }) }); const d = await r.json(); if (!r.ok) throw new Error(d.message ?? 'Update failed.'); flash(`${p.name} ${!p.onPlatform ? 'now also on the main marketplace' : 'removed from the main marketplace'}.`); load(); } catch (e) { flash(e instanceof Error ? e.message : 'Update failed.', true); } finally { setBusyId(''); }
   };
+const [margin, setMargin] = useState('0'); const [syncing, setSyncing] = useState(false); const [syncSummary, setSyncSummary] = useState('');
+  const syncCatalog = async () => {
+    setSyncing(true); setError(''); setNotice(''); setSyncSummary('');
+    try {
+      const r = await fetch('/api/admin/catalog-sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ marginPct: Number(margin || '15') }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message ?? 'Sync failed.');
+      setSyncSummary(d.data.providers.map((p: { provider: string; ok: boolean; message: string }) => `${p.ok ? '✓' : '•'} ${p.provider}: ${p.message}`).join('\n'));
+      load();
+    } catch (e) { setError(e instanceof Error ? e.message : 'Sync failed.'); }
+    finally { setSyncing(false); }
+  };
   const toggleStock = async (p: AdminProduct) => {
     setBusyId(p.id);
     try {
@@ -68,9 +80,14 @@ export default function AdminProducts() {
   return <main className="productAdmin">
     <header>
       <div><p>ADMIN / CATALOG</p><h1>Products &amp; inventory</h1></div>
-      <Link className="btnLike" href="/admin/products/new">＋ Add product</Link>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input value={margin} onChange={e => setMargin(e.target.value.replace(/[^\d.]/g, ''))} title="Margin % added to provider cost — 0 sells at the provider's own price and hands payment off to their checkout; any margin keeps the sale (and that margin) on DigiMart" style={{ width: 74, border: '1px solid #e2e7ef', borderRadius: 10, padding: '10px 8px', font: 'inherit', fontSize: 13 }} placeholder="0" />%
+        <button disabled={syncing} onClick={syncCatalog}>{syncing ? 'Syncing…' : '⟳ Sync provider catalogs'}</button>
+        <Link className="btnLike" href="/admin/products/new">＋ Add product</Link>
+      </div>
     </header>
     {notice && <p className="adminNotice ok">{notice}</p>}
+    {syncSummary && <pre className="adminNotice ok" style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{syncSummary}</pre>}
     {error && <p className="adminNotice err">{error}</p>}
     <section className="catalogStats">
       <article><b>{stats.total}</b><span>Total products</span></article>

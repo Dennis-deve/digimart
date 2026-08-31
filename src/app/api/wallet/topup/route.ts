@@ -23,8 +23,9 @@ export async function POST(request: Request) {
   try {
     const payment = await initiateMoolreCollection({ payer: user?.phone ?? '', amount: input.data.amount, channel: input.data.provider, externalref: ref, reference: wallet.id });
     return NextResponse.json({ status: 'success', data: { reference: ref, amount: input.data.amount, instructions: payment.instructions, notice: 'Your wallet is credited automatically once the payment is server-side verified.' } }, { status: 201 });
-  } catch {
+  } catch (error) {
     await prisma.walletEntry.deleteMany({ where: { walletId: wallet.id, reference: `INTENT-${ref}` } });
-    return NextResponse.json({ status: 'error', message: 'Unable to start the top-up. Please try again later.' }, { status: 502 });
+    const reason = error instanceof Error && error.message ? ` — ${error.message}` : '';
+    return NextResponse.json({ status: 'error', message: `Top-up is unavailable right now${reason}.` }, { status: 502 });
   }
 }

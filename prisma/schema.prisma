@@ -99,6 +99,8 @@ model Product {
   seller                Seller?                 @relation(fields: [sellerId], references: [id])
   sellerId              String?
   approvalStatus        String                  @default("APPROVED")
+  providerCost          Decimal?                @db.Decimal(10, 2)
+  externalCheckoutUrl   String?
   variants              Json?
   onPlatform            Boolean                 @default(false)
   reviews               Review[]

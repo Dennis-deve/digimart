@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-type ApiProduct = { id: string; name: string; network: string | null; category: string; basePrice: number; variablePrice: boolean; minAmount: number | null; maxAmount: number | null; images: string[]; description: string | null; inStock: boolean; provider: 'BUNDLESHOPGH' | 'MUVIIN' | 'ADMIN' | 'REFER2BUNDLE' };
-type Product = { id: string; icon: string; name: string; provider: string; price: number; type: 'digital' | 'physical' | 'service'; meta: string; category: string; qty?: number };
+type ApiProduct = { id: string; name: string; network: string | null; category: string; basePrice: number; variablePrice: boolean; minAmount: number | null; maxAmount: number | null; images: string[]; description: string | null; inStock: boolean; provider: 'BUNDLESHOPGH' | 'MUVIIN' | 'ADMIN' | 'REFER2BUNDLE'; externalCheckout?: boolean; externalUrl?: string | null };
+type Product = { id: string; icon: string; name: string; provider: string; price: number; type: 'digital' | 'physical' | 'service'; meta: string; category: string; qty?: number; externalUrl?: string | null };
 type Zone = { id: string; name: string; city: string; baseFee: number; minimumOrder: number | null; estimatedMinutes: number; pickupAvailable: boolean; active: boolean };
 type Address = { id: string; label: string; recipientName: string; phone: string; address: string; city: string };
 type StoreCard = { name: string; slug: string; tagline: string | null; color: string; since: string | null };
@@ -80,7 +80,7 @@ export default function Home() {
   // catalog fetch with search + category
   useEffect(() => { let active = true; setSearching(true);
     const params = new URLSearchParams(); if (debounced) params.set('q', debounced); if (category !== 'All') params.set('category', category);
-    fetch(`/api/products${params.toString() ? `?${params}` : ''}`).then(r=>r.json()).then(r=>{ if(!active)return; if(Array.isArray(r.data)) setProducts(r.data.map((p: ApiProduct) => ({ id: p.id, icon: iconFor(p), name: p.name, provider: providerName(p.provider), price: p.basePrice, type: kindOf(p), meta: metaFor(p), category: p.category }))); }).catch(()=>undefined).finally(()=>{ if(active) setSearching(false); });
+    fetch(`/api/products${params.toString() ? `?${params}` : ''}`).then(r=>r.json()).then(r=>{ if(!active)return; if(Array.isArray(r.data)) setProducts(r.data.map((p: ApiProduct) => ({ id: p.id, icon: iconFor(p), name: p.name, provider: providerName(p.provider), price: p.basePrice, type: kindOf(p), meta: metaFor(p), category: p.category, externalUrl: p.externalUrl ?? null }))); }).catch(()=>undefined).finally(()=>{ if(active) setSearching(false); });
     return () => { active = false; };
   }, [debounced, category]);
 
@@ -154,7 +154,7 @@ export default function Home() {
 
     <div className="productGrid">{products.length ? products.map(product => <article className="product" key={product.id}>
       <div className="productArt"><span>{product.icon}</span><i className="catTag">{product.category}</i></div><h3><Link href={`/product/${product.id}`}>{product.name}</Link></h3><p>✓ DigiMart verified</p><strong>GH₵{product.price.toFixed(2)}</strong><small><i/> {product.meta}</small>
-      <button onClick={() => add(product, product.type === 'digital')}>{product.type === 'digital' ? 'Buy now' : 'Add to cart'}</button>
+      {product.externalUrl ? <a className="btnLike" style={{ textAlign: 'center', display: 'block' }} href={product.externalUrl} target="_blank" rel="noreferrer">Buy now ↗</a> : <button onClick={() => add(product, product.type === 'digital')}>{product.type === 'digital' ? 'Buy now' : 'Add to cart'}</button>}
     </article>) : !searching ? <p className="catalogEmpty">Nothing found{debounced ? ` for “${debounced}”` : ''}. Try another search or category.</p> : <p className="catalogEmpty">Searching…</p>}</div>
 
     {stores.length > 0 && <>

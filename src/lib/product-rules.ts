@@ -57,3 +57,80 @@ export function dataPlanFromName(name: string): string | null {
   const m = name.match(/(\d+(?:\.\d+)?)\s*(GB|MB)/i);
   return m ? `${m[1]}${m[2].toUpperCase()}` : null;
 }
+
+// ---------- Provider catalog sync mappers (pure — unit tested) ----------
+export type R2BBundle = { network: string; plan_name: string; price: string; bundle_id: number };
+export type MappedCatalogProduct = { sourceProductId: string; name: string; network?: string; basePrice: number; cost: number };
+/** Refer2Bundle /bundles mapper: normalizes networks (Express(MTN) becomes an "MTN Express" tier),
+ *  names include the size for fulfilment, owner margin applied. Unknown networks are skipped. */
+export function mapR2BBundles(bundles: R2BBundle[], marginPct: number): MappedCatalogProduct[] {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const out: MappedCatalogProduct[] = [];
+  for (const b of bundles) {
+    const netRaw = String(b.network ?? '').trim();
+    let network: string | null = null; let tier = '';
+    if (netRaw === 'MTN') network = 'MTN';
+    else if (netRaw === 'Airteltigo' || netRaw === 'AT') network = 'AirtelTigo';
+    else if (netRaw === 'Telecel' || netRaw === 'Vodafone') network = 'Telecel';
+    else if (/express.*mtn|mtn.*express/i.test(netRaw)) { network = 'MTN'; tier = 'Express '; }
+    if (!network) continue;
+    const plan = String(b.plan_name ?? '').replace(/\s+/g, '');
+    if (!plan) continue;
+    const cost = Number(b.price);
+    if (!Number.isFinite(cost) || cost <= 0) continue;
+    const id = `r2b-${b.bundle_id}`;
+    if (out.some(o => o.sourceProductId === id)) continue;
+    const basePrice = round2(cost * (1 + marginPct / 100));
+    out.push({ sourceProductId: id, name: `${network} ${tier}${plan} Data Bundle`.replace('  ', ' ').trim(), network, basePrice, cost: round2(cost) });
+  }
+  return out;
+}
+const MUVIIN_DATA_LIKE = /(data\s*bundle|\d+\s*(gb|mb)\b)/i;
+/** Muviin item categorizer — data bundles are NEVER sold from Muviin (strict rule). */
+export function categorizeMuviinItem(name: string): string | null {
+  const n = name.toLowerCase();
+  if (MUVIIN_DATA_LIKE.test(name)) return null;
+  if (/checker|wassce|bece|waec|result/.test(n)) return 'Result Checkers';
+  if (/netflix|spotify|youtube|disney|stream|prime video|showmax/.test(n)) return 'Streaming & Subscriptions';
+  if (/airtime|credit/.test(n)) return null;
+  if (/ticket|event|concert/.test(n)) return 'Other Digital';
+  return 'Other Digital';
+}
+
+// ---------- BundleShopGH curated-catalog mapper (pure — unit tested) ----------
+export type BSGHTier = 'MTN' | 'TELECEL' | 'AIRTELTIGO' | 'AIRTELTIGO_BIGTIME' | 'AIRTELTIGO_ISHARE';
+const BSGH_DISPLAY: Record<string, { label: string; network: string }> = {
+  MTN: { label: 'MTN', network: 'MTN' },
+  TELECEL: { label: 'Telecel', network: 'Telecel' },
+  AIRTELTIGO: { label: 'AirtelTigo', network: 'AirtelTigo' },
+  AIRTELTIGO_BIGTIME: { label: 'AirtelTigo BigTime', network: 'AirtelTigo' },
+  AIRTELTIGO_ISHARE: { label: 'AirtelTigo iShare', network: 'AirtelTigo' },
+};
+/** Maps the curated BundleShopGH list to products. The tier lives in the NAME
+ *  (fulfilment routes BigTime/iShare to their own BundleShopGH network codes). */
+export function mapBSGHBundles(bundles: { tier: BSGHTier; size: number; price: number }[], marginPct: number): MappedCatalogProduct[] {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const out: MappedCatalogProduct[] = [];
+  for (const b of bundles) {
+    const d = BSGH_DISPLAY[b.tier];
+    if (!d || !Number.isFinite(b.size) || b.size <= 0 || !Number.isFinite(b.price) || b.price <= 0) continue;
+    const id = `bsgh-${b.tier.toLowerCase().replace(/[^a-z]+/g, '-')}-${b.size}gb`;
+    if (out.some(o => o.sourceProductId === id)) continue;
+    out.push({ sourceProductId: id, name: `${d.label} ${b.size}GB Data Bundle`, network: d.network, basePrice: round2(b.price * (1 + marginPct / 100)), cost: round2(b.price) });
+  }
+  return out;
+}
+
+// ---------- External-checkout decision (pure — unit tested) ----------
+/** TRUE when a provider product sells at the provider's own price and should hand
+ *  off to the provider's own payment page. Any markup (margin, seller/reseller)
+ *  keeps the sale on DigiMart checkout. Store contexts are ALWAYS internal. */
+type NumericLike = string | number | { toNumber(): number } | null | undefined;
+const toNum = (v: NumericLike): number => (v !== null && typeof v === 'object' ? v.toNumber() : Number(v));
+export function isExternalProduct(p: { externalCheckoutUrl?: string | null; providerCost?: NumericLike; basePrice: NumericLike }): boolean {
+  if (!p.externalCheckoutUrl) return false;
+  const cost = toNum(p.providerCost);
+  const price = toNum(p.basePrice);
+  if (!Number.isFinite(cost) || !Number.isFinite(price)) return false;
+  return price <= cost + 0.001;
+}

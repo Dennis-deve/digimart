@@ -82,3 +82,72 @@ describe('AFA across providers (with and without Ghana Card)', () => {
     expect(validateProductRules({ source: 'BUNDLESHOPGH', category: 'Data Bundles', name: 'MTN Data' })).toMatch(/network/i);
   });
 });
+
+describe('provider catalog sync mapper (Refer2Bundle)', () => {
+  it('normalizes networks, sizes names for fulfilment, applies margin', async () => {
+    const { mapR2BBundles } = await import('../src/lib/product-rules');
+    const out = mapR2BBundles([
+      { network: 'MTN', plan_name: '1 GB', price: '4.30', bundle_id: 162 },
+      { network: 'Airteltigo', plan_name: '2 GB', price: '8.30', bundle_id: 163 },
+      { network: 'Telecel', plan_name: '5 GB', price: '20', bundle_id: 1 },
+      { network: 'Express(MTN)', plan_name: '10 GB', price: '40', bundle_id: 2 },
+    ], 15);
+    expect(out.find(o => o.sourceProductId === 'r2b-162')).toMatchObject({ name: 'MTN 1GB Data Bundle', network: 'MTN', basePrice: 4.94 });
+    expect(out.find(o => o.sourceProductId === 'r2b-163')!.network).toBe('AirtelTigo');
+    expect(out.find(o => o.sourceProductId === 'r2b-2')!.name).toContain('MTN Express 10GB');
+  });
+  it('skips unknown networks, bad prices and duplicates', async () => {
+    const { mapR2BBundles } = await import('../src/lib/product-rules');
+    const out = mapR2BBundles([
+      { network: 'Glo', plan_name: '1 GB', price: '2', bundle_id: 9 },
+      { network: 'MTN', plan_name: '1 GB', price: 'x', bundle_id: 10 },
+      { network: 'MTN', plan_name: '1 GB', price: '4.30', bundle_id: 162 },
+      { network: 'MTN', plan_name: '2 GB', price: '8.30', bundle_id: 162 },
+    ], 15);
+    expect(out.length).toBe(1);
+  });
+  it('Muviin categorizer NEVER maps data bundles (strict rule)', async () => {
+    const { mapR2BBundles } = await import('../src/lib/product-rules');
+    expect(mapR2BBundles([], 10)).toEqual([]);
+  });
+});
+
+describe('BundleShopGH curated-catalog mapper', () => {
+  it('creates tiered names with GB sizes and applies margin', async () => {
+    const { mapBSGHBundles } = await import('../src/lib/product-rules');
+    const out = mapBSGHBundles([
+      { tier: 'MTN', size: 1, price: 4.6 },
+      { tier: 'TELECEL', size: 5, price: 21 },
+      { tier: 'AIRTELTIGO_BIGTIME', size: 10, price: 38 },
+    ], 15);
+    expect(out.find(o => o.sourceProductId === 'bsgh-mtn-1gb')).toMatchObject({ name: 'MTN 1GB Data Bundle', network: 'MTN', basePrice: 5.29 });
+    expect(out.find(o => o.sourceProductId === 'bsgh-telecel-5gb')!.name).toBe('Telecel 5GB Data Bundle');
+    expect(out.find(o => o.sourceProductId === 'bsgh-airteltigo-bigtime-10gb')!.name).toBe('AirtelTigo BigTime 10GB Data Bundle');
+  });
+  it('skips invalid entries and duplicates', async () => {
+    const { mapBSGHBundles } = await import('../src/lib/product-rules');
+    const out = mapBSGHBundles([
+      { tier: 'GLO' as never, size: 1, price: 2 },
+      { tier: 'MTN', size: 1, price: 0 },
+      { tier: 'MTN', size: 1, price: 4.6 },
+      { tier: 'MTN', size: 1, price: 4.7 },
+    ], 10);
+    expect(out.length).toBe(1);
+  });
+});
+
+describe('external-checkout decision (as-is price hands off, markup stays)', () => {
+  it('at cost + URL -> external', async () => {
+    const { isExternalProduct } = await import('../src/lib/product-rules');
+    expect(isExternalProduct({ externalCheckoutUrl: 'https://bundleshopgh.com/store/joedai', providerCost: 4.6, basePrice: 4.6 })).toBe(true);
+  });
+  it('any markup -> internal (DigiMart checkout)', async () => {
+    const { isExternalProduct } = await import('../src/lib/product-rules');
+    expect(isExternalProduct({ externalCheckoutUrl: 'https://x.com', providerCost: 4.6, basePrice: 5.29 })).toBe(false);
+  });
+  it('no URL or missing cost -> internal', async () => {
+    const { isExternalProduct } = await import('../src/lib/product-rules');
+    expect(isExternalProduct({ externalCheckoutUrl: null, providerCost: 4.6, basePrice: 4.6 })).toBe(false);
+    expect(isExternalProduct({ externalCheckoutUrl: 'https://x.com', providerCost: null, basePrice: 4.6 })).toBe(false);
+  });
+});
